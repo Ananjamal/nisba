@@ -191,7 +191,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 <div class="flex items-center justify-between p-4 bg-success-50 rounded-xl border border-success-200">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                            <img src="https://nisba.me/assets/img/qoyod.png" class="h-5 grayscale opacity-70" alt="Qoyod">
+                            <img src="{{asset('images/systems/qoyod.png')}}" class="h-5 grayscale opacity-70" alt="Qoyod">
                         </div>
                         <div>
                             <p class="font-semibold text-corporate-900 text-sm">منصة قيود</p>
@@ -205,7 +205,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 <div class="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-200">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                            <img src="https://nisba.me/assets/img/daftra.png" class="h-5 grayscale opacity-70" alt="Daftra">
+                            <img src="{{asset('images/systems/daftra.png')}}" class="h-5 grayscale opacity-70" alt="Daftra">
                         </div>
                         <div>
                             <p class="font-semibold text-corporate-900 text-sm">منصة دفترة</p>
