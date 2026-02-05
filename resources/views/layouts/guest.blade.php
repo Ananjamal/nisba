@@ -28,7 +28,7 @@
         <div class="mb-8 w-full max-w-7xl mx-auto px-6 py-6 flex justify-between items-center fixed top-0 left-0 right-0">
             <div class="flex items-center space-x-2 rtl:space-x-reverse">
                 <div class="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm">%</div>
-                <span class="text-2xl font-black text-blue-900">نسبة</span>
+                <span class="text-2xl font-black text-black">نسبة</span>
             </div>
             <div class="flex items-center space-x-4 rtl:space-x-reverse">
                 <a href="{{ route('login') }}" class="bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 transition shadow-sm">{{ __('تسجيل الدخول') }}</a>

@@ -20,25 +20,38 @@ new #[Layout('layouts.guest')] class extends Component
 
         Session::regenerate();
 
-        $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        if (auth()->user()->role === 'admin') {
+            $this->redirect(route('admin.dashboard', absolute: false), navigate: true);
+        } else {
+            $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        }
     }
 }; ?>
 
-<div class="space-y-8">
-    <div class="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+<div class="w-full max-w-md mx-auto relative">
+    <!-- Background Decor -->
+    <div class="absolute -top-20 -right-20 w-64 h-64 bg-primary-500/20 rounded-full blur-[80px] animate-pulse"></div>
+    <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-yellow-400/20 rounded-full blur-[80px] animate-pulse delay-1000"></div>
+
+    <div class="bg-white/90 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-white/50 relative z-10">
         <div class="text-center mb-10">
-            <h1 class="text-3xl font-black text-blue-900 mb-2">تسجيل الدخول</h1>
-            <p class="text-gray-400 font-bold text-sm italic">أدخل بيانات حسابك للمتابعة</p>
+            <h1 class="text-3xl font-black text-primary-900 mb-2">مرحباً بعودتك! 👋</h1>
+            <p class="text-gray-500 font-medium">أدخل بياناتك للدخول إلى لوحة التحكم</p>
         </div>
 
         <form wire:submit="login" class="space-y-6">
             <!-- Email Address -->
             <div>
                 <label for="email" class="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني</label>
-                <div class="relative">
+                <div class="relative group">
                     <input wire:model="form.email" id="email" type="email" name="email" required autofocus
-                        class="w-full px-5 py-4 bg-[#f8fafc] border-none rounded-2xl text-gray-700 font-bold focus:ring-2 focus:ring-yellow-400/20 transition placeholder:text-gray-300"
-                        placeholder="your@email.com">
+                        class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all placeholder:text-gray-400"
+                        placeholder="example@nisba.com">
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                        </svg>
+                    </div>
                 </div>
                 <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
             </div>
@@ -47,54 +60,40 @@ new #[Layout('layouts.guest')] class extends Component
             <div>
                 <div class="flex justify-between mb-2">
                     <label for="password" class="block text-sm font-bold text-gray-700">كلمة المرور</label>
-                    <a href="{{ route('password.request') }}" class="text-xs font-bold text-gray-400 hover:text-yellow-500 transition">نسيت كلمة المرور؟</a>
+                    <a href="{{ route('password.request') }}" class="text-xs font-bold text-primary-600 hover:text-primary-800 transition">نسيت كلمة المرور؟</a>
                 </div>
-                <div class="relative">
+                <div class="relative group">
                     <input wire:model="form.password" id="password" type="password" name="password" required
-                        class="w-full px-5 py-4 bg-[#f8fafc] border-none rounded-2xl text-gray-700 font-bold focus:ring-2 focus:ring-yellow-400/20 transition placeholder:text-gray-300"
+                        class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all placeholder:text-gray-400"
                         placeholder="••••••••">
-                    <div class="absolute inset-y-0 left-4 flex items-center text-gray-400 cursor-pointer">
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
                     </div>
                 </div>
                 <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
             </div>
 
+            <div class="flex items-center">
+                <label for="remember" class="inline-flex items-center">
+                    <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500">
+                    <span class="ms-2 text-sm text-gray-600 font-medium">{{ __('تذكرني') }}</span>
+                </label>
+            </div>
+
             <div class="pt-2">
-                <button type="submit" class="w-full py-5 bg-blue-900 text-white rounded-2xl font-black text-xl shadow-xl shadow-blue-100 hover:bg-blue-800 transition">
+                <button type="submit" class="w-full py-4 bg-primary-900 text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-900/20 hover:bg-primary-800 hover:-translate-y-1 transition-all duration-300">
                     تسجيل الدخول
                 </button>
             </div>
 
-            <div class="text-center pt-4">
-                <p class="text-sm font-bold text-gray-400">
+            <div class="text-center pt-6 border-t border-gray-100">
+                <p class="text-sm font-medium text-gray-500">
                     ليس لديك حساب؟
-                    <a href="{{ route('register') }}" class="text-[#0061ff] hover:underline">إنشاء حساب</a>
+                    <a href="{{ route('register') }}" class="font-bold text-primary-600 hover:text-primary-800 hover:underline transition">أنشئ حساب شريك جديد</a>
                 </p>
             </div>
         </form>
-    </div>
-
-    <!-- Bottom Banner -->
-    <div class="bg-gradient-to-l from-blue-900 to-blue-800 p-8 rounded-[2.5rem] shadow-xl text-center relative overflow-hidden group">
-        <div class="relative z-10 flex flex-col items-center">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl text-white text-xs font-bold mb-4 backdrop-blur-sm border border-white/10">
-                <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd"></path>
-                </svg>
-                {{ __('عميل جديد؟') }}
-            </div>
-            <h2 class="text-2xl font-black text-white mb-2 italic">ابدأ رحلتك الآن وحقق دخلاً إضافياً</h2>
-            <p class="text-white/60 font-bold mb-8 text-sm">انضم الآن واحصل على %30 عمولة على كل توصية ناجحة</p>
-            <a href="{{ route('register') }}" class="w-full py-4 bg-yellow-400 text-black rounded-2xl font-black text-lg hover:bg-yellow-500 transition shadow-lg shadow-yellow-400/20">
-                سجل كشريك نجاح
-            </a>
-        </div>
-        <!-- Decorative elements -->
-        <div class="absolute -top-10 -right-10 w-40 h-40 bg-yellow-400/10 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
     </div>
 </div>

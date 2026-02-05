@@ -9,16 +9,31 @@ use Livewire\Attributes\Layout;
 new #[Layout('layouts.admin')] class extends Component {
     use WithPagination;
 
+    public $search = '';
+    public $sector_filter = '';
+
     public $userId = null;
     public $name = '';
     public $email = '';
     public $password = '';
+    public $sector = '';
     public $showModal = false;
 
     public function with()
     {
         return [
-            'users' => User::where('role', 'affiliate')->latest()->paginate(10),
+            'users' => User::where('role', 'affiliate')
+                ->when($this->search, function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('name', 'like', '%' . $this->search . '%')
+                            ->orWhere('email', 'like', '%' . $this->search . '%');
+                    });
+                })
+                ->when($this->sector_filter, function ($query) {
+                    $query->where('sector', $this->sector_filter);
+                })
+                ->latest()
+                ->paginate(10),
         ];
     }
 
@@ -28,6 +43,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->name = '';
         $this->email = '';
         $this->password = '';
+        $this->sector = '';
         $this->resetValidation();
     }
 
@@ -43,6 +59,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->userId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
+        $this->sector = $user->sector;
         $this->password = ''; // Don't show password
         $this->resetValidation();
         $this->showModal = true;
@@ -55,11 +72,13 @@ new #[Layout('layouts.admin')] class extends Component {
                 'name' => 'required|min:3',
                 'email' => 'required|email|unique:users,email,' . $this->userId,
                 'password' => 'nullable|min:8',
+                'sector' => 'nullable|string|max:255',
             ]);
 
             $user = User::findOrFail($this->userId);
             $user->name = $this->name;
             $user->email = $this->email;
+            $user->sector = $this->sector;
             if ($this->password) {
                 $user->password = bcrypt($this->password);
             }
@@ -71,6 +90,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 'name' => 'required|min:3',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|min:8',
+                'sector' => 'nullable|string|max:255',
             ]);
 
             User::create([
@@ -78,6 +98,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 'email' => $this->email,
                 'password' => bcrypt($this->password),
                 'role' => 'affiliate',
+                'sector' => $this->sector,
             ]);
 
             session()->flash('message', 'تم إضافة المسوق بنجاح!');
@@ -95,7 +116,7 @@ new #[Layout('layouts.admin')] class extends Component {
     }
 }; ?>
 
-<div class="space-y-8" x-data="{ showModal: @entangle('showModal') }">
+<div class="space-y-8" x-data="{ showModal: @entangle('showModal'), showDeleteModal: false, deletingId: null }">
     @if (session()->has('message'))
     <div class="p-4 text-sm text-green-700 bg-green-100 rounded-2xl font-bold border border-green-200" role="alert">
         {{ session('message') }}
@@ -117,12 +138,37 @@ new #[Layout('layouts.admin')] class extends Component {
         </div>
     </div>
 
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <div class="relative flex-1">
+            <input type="text" wire:model.live="search" placeholder="بحث باسم المسوق أو البريد الإلكتروني..." class="w-full pr-10 py-3 bg-white border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 shadow-sm">
+            <div class="absolute inset-y-0 right-3 flex items-center text-blue-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+        <select wire:model.live="sector_filter" class="w-full md:w-48 py-3 bg-white border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 cursor-pointer shadow-sm">
+            <option value="">كل القطاعات</option>
+            <option value="العقارات">العقارات</option>
+            <option value="التقنية والبرمجة">التقنية والبرمجة</option>
+            <option value="التسويق والدعاية">التسويق والدعاية</option>
+            <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
+            <option value="التعليم">التعليم</option>
+            <option value="الصحة">الصحة</option>
+            <option value="الخدمات المالية">الخدمات المالية</option>
+            <option value="المقاولات والبناء">المقاولات والبناء</option>
+            <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
+            <option value="أخرى">أخرى</option>
+        </select>
+    </div>
+
     <div class="bg-white rounded-[2rem] border border-blue-100 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-right">
                 <thead>
                     <tr class="bg-blue-50 border-b border-blue-100">
                         <th class="px-8 py-5 text-sm font-black text-blue-900">{{ __('المسوق') }}</th>
+                        <th class="px-8 py-5 text-sm font-black text-blue-900">{{ __('القطاع') }}</th>
                         <th class="px-8 py-5 text-sm font-black text-blue-900">{{ __('البريد الإلكتروني') }}</th>
                         <th class="px-8 py-5 text-sm font-black text-blue-900">{{ __('تاريخ التسجيل') }}</th>
                         <th class="px-8 py-5 text-sm font-black text-blue-900">{{ __('الحالة') }}</th>
@@ -140,6 +186,7 @@ new #[Layout('layouts.admin')] class extends Component {
                                 <span class="font-bold text-blue-900">{{ $user->name }}</span>
                             </div>
                         </td>
+                        <td class="px-8 py-5 font-medium text-gray-600">{{ $user->sector ?? '-' }}</td>
                         <td class="px-8 py-5 font-medium text-blue-600">{{ $user->email }}</td>
                         <td class="px-8 py-5 font-bold text-blue-400 text-sm">{{ $user->created_at->format('Y-m-d') }}</td>
                         <td class="px-8 py-5">
@@ -163,7 +210,7 @@ new #[Layout('layouts.admin')] class extends Component {
                                         </svg>
                                         {{ __('تعديل') }}
                                     </button>
-                                    <button wire:click="deleteUser({{ $user->id }}); open = false" wire:confirm="{{ __('هل أنت متأكد من حذف هذا المسوق؟') }}" class="w-full text-right px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                    <button @click="deletingId = {{ $user->id }}; showDeleteModal = true; open = false" class="w-full text-right px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
@@ -220,6 +267,24 @@ new #[Layout('layouts.admin')] class extends Component {
                         </div>
 
                         <div>
+                            <label class="block text-sm font-bold text-blue-900 mb-2">{{ __('المجال / القطاع') }}</label>
+                            <select wire:model="sector" class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500 font-bold text-blue-900">
+                                <option value="">اختر القطاع</option>
+                                <option value="العقارات">العقارات</option>
+                                <option value="التقنية والبرمجة">التقنية والبرمجة</option>
+                                <option value="التسويق والدعاية">التسويق والدعاية</option>
+                                <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
+                                <option value="التعليم">التعليم</option>
+                                <option value="الصحة">الصحة</option>
+                                <option value="الخدمات المالية">الخدمات المالية</option>
+                                <option value="المقاولات والبناء">المقاولات والبناء</option>
+                                <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                            @error('sector') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
                             <label class="block text-sm font-bold text-blue-900 mb-2">{{ __('كلمة المرور') }} <span class="text-xs text-gray-400 font-normal">{{ $userId ? __('(اتركها فارغة لعدم التغيير)') : '' }}</span></label>
                             <input type="password" wire:model="password" class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500 font-bold text-blue-900" placeholder="********">
                             @error('password') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
@@ -240,3 +305,38 @@ new #[Layout('layouts.admin')] class extends Component {
             </div>
         </div>
     </template>
+
+    <!-- Professional Delete Confirmation Modal -->
+    <template x-teleport="body">
+        <div x-show="showDeleteModal" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all text-center">
+                    <div class="mb-6">
+                        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
+                            <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-black text-blue-900 mb-2">هل أنت متأكد؟</h3>
+                        <p class="text-blue-500 font-medium">سيتم حذف بيانات المسوق نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <button
+                            @click="$wire.deleteUser(deletingId); showDeleteModal = false"
+                            class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:shadow-red-300 transition-all transform active:scale-95">
+                            تأكيد الحذف
+                        </button>
+                        <button
+                            @click="showDeleteModal = false"
+                            class="w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-100 transition-all font-bold">
+                            إلغاء
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>

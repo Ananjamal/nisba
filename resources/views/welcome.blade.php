@@ -1,183 +1,338 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="rtl">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>نسبة | منصة التسويق بالعمولة للحلول السحابية</title>
+    <title>{{ config('app.name', 'Nisba') }} - منصة التسويق بالعمولة</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .hero-pattern {
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230ea5e9' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4h-2v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-    </style>
 </head>
 
-<body class="antialiased text-slate-900 bg-white selection:bg-primary-500 selection:text-white">
-    <!-- Navbar -->
-    <nav class="fixed top-0 inset-x-0 z-50 glass-nav border-none">
-        <div class="max-w-7xl mx-auto px-6 h-24 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-primary-900 text-white rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-primary-900/10">%</div>
-                <span class="text-2xl font-black tracking-tight text-slate-900">نسبة</span>
+<body class="antialiased font-cairo bg-white text-gray-900 selection:bg-yellow-400 selection:text-black">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-primary-900 border-b border-white/10 shadow-lg py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                    <span class="font-black text-xl text-white">%</span>
+                </div>
+                <span class="text-2xl font-black tracking-wide text-white">نسبة</span>
             </div>
 
-            <div class="hidden md:flex items-center gap-10">
-                <a href="#features" class="text-sm font-bold text-slate-500 hover:text-primary-600 transition-colors uppercase tracking-widest">المميزات</a>
-                <a href="#how-it-works" class="text-sm font-bold text-slate-500 hover:text-primary-600 transition-colors uppercase tracking-widest">كيف يعمل؟</a>
-                <a href="#faq" class="text-sm font-bold text-slate-500 hover:text-primary-600 transition-colors uppercase tracking-widest">الأسئلة</a>
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button class="focus:outline-none text-white">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
             </div>
 
-            <div class="flex items-center gap-4">
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="font-bold transition-colors text-sm text-gray-300 hover:text-white">المميزات</a>
+                <a href="#how-it-works" class="font-bold transition-colors text-sm text-gray-300 hover:text-white">شركاء النجاح</a>
+                <a href="#faq" class="font-bold transition-colors text-sm text-gray-300 hover:text-white">الأسئلة الشائعة</a>
+            </div>
+
+            <!-- Auth Buttons -->
+            <div class="flex items-center space-x-4 rtl:space-x-reverse">
                 @auth
-                <a href="{{ url('/dashboard') }}" class="btn-primary py-3 px-6 text-sm">لوحة التحكم</a>
+                @if(auth()->user()->role === 'admin')
+                <a href="{{ route('admin.dashboard') }}" class="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-sm">{{ __('لوحة الإدارة') }}</a>
+                @endif
                 @else
-                <a href="{{ route('login') }}" class="text-sm font-black text-slate-900 hover:text-primary-600 transition-colors">{{ __('تسجيل الدخول') }}</a>
-                <a href="{{ route('register') }}" class="btn-primary py-3 px-8 text-sm shadow-xl shadow-primary-900/10">{{ __('ابدأ الآن') }}</a>
+                <a href="{{ route('login') }}" class="bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 transition shadow-sm">{{ __('تسجيل الدخول') }}</a>
+                <a href="{{ route('register') }}" class="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-sm">{{ __('انضم كشريك') }}</a>
                 @endauth
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="relative pt-48 pb-32 overflow-hidden hero-pattern">
-        <!-- Background Orbs -->
-        <div class="absolute top-0 right-0 -mr-24 w-[600px] h-[600px] bg-primary-50 rounded-full blur-[100px] -z-10"></div>
-        <div class="absolute bottom-0 left-0 -ml-24 w-[500px] h-[500px] bg-indigo-50 rounded-full blur-[100px] -z-10"></div>
+    <!-- Hero Section (Centered & Premium) -->
+    <header class="relative min-h-[850px] flex items-center justify-center overflow-hidden bg-primary-900 text-white">
 
-        <div class="max-w-7xl mx-auto px-6 text-center">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-full font-bold text-xs uppercase tracking-widest mb-10 animate-bounce">
-                🚀 بوابتك للنمو المالي الرقمي
+        <!-- Background Effects -->
+        <div class="absolute inset-0 pointer-events-none">
+            <!-- Subtle Grid -->
+            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+            <!-- Glows -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl mx-auto">
+                <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+                <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-yellow-500/10 rounded-full blur-[100px] mix-blend-screen animation-delay-2000"></div>
             </div>
-            <h1 class="text-6xl md:text-8xl font-black text-slate-900 mb-8 leading-[1.1] tracking-tight">
-                اربح عمولات مجزية <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-indigo-600">من شركاء النجاح</span>
+        </div>
+
+        <div class="relative z-10 max-w-5xl mx-auto px-4 text-center mt-20">
+
+            <!-- Quality Badge -->
+            <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-yellow-400 text-sm font-bold mb-10 backdrop-blur-md shadow-2xl animate-fade-in-up">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                </span>
+                <span class="tracking-wide uppercase text-xs sm:text-sm">منصة التسويق بالعمولة الأولى</span>
+            </div>
+
+            <!-- Headline -->
+            <h1 class="text-5xl sm:text-7xl md:text-8xl font-black leading-tight mb-8 tracking-tight drop-shadow-2xl animate-fade-in-up delay-100">
+                أرباحك تبدأ <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600">بشراكة ذكية</span>
             </h1>
-            <p class="text-xl text-slate-500 max-w-2xl mx-auto mb-16 font-medium leading-relaxed">
-                منصة نسبة هي بوابتك للارتقاء بدخلك من خلال ترشيح أفضل الحلول السحابية المحاسبية لعملائك ومتابعة أرباحك بكل شفافية واحترافية.
+
+            <!-- Subheadline -->
+            <p class="text-lg sm:text-xl md:text-2xl text-blue-100/80 mb-12 max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up delay-200">
+                انضم لنخبة المسوقين في "نسبة". نربطك بأكبر العلامات التجارية لتبني دخلاً مستداماً بأدوات احترافية وعمولات مجزية.
             </p>
 
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-6">
-                <a href="{{ route('register') }}" class="btn-primary text-xl px-12 py-6 min-w-[240px]">
-                    سجل كشريك نجاح
+            <!-- CTAs -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-5 animate-fade-in-up delay-300">
+                <a href="{{ route('register') }}" style="background-color: #FFD700 !important; color: #051d2e !important;" class="w-full sm:w-auto px-10 py-5 text-lg font-black rounded-xl shadow-[0_0_30px_-5px_rgba(250,204,21,0.4)] transition-all transform hover:-translate-y-1 hover:scale-105">
+                    ابدأ رحلتك الآن
                 </a>
-                <a href="#how-it-works" class="btn-secondary text-xl px-12 py-6 min-w-[240px]">
-                    كيف تعمل المنصة؟
+                <a href="#how-it-works" class="w-full sm:w-auto px-10 py-5 bg-white/5 hover:bg-white/10 text-white text-lg font-bold rounded-xl backdrop-blur border border-white/10 transition-all flex items-center justify-center gap-2 group">
+                    <span class="group-hover:translate-x-1 transition-transform">كيف تعمل؟</span>
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    </svg>
                 </a>
             </div>
 
-            <!-- Dashboard Preview Placeholder -->
-            <div class="mt-24 relative max-w-5xl mx-auto">
-                <div class="p-4 bg-white/50 border border-white/50 rounded-[3rem] shadow-2xl backdrop-blur-sm">
-                    <div class="bg-slate-900 h-[500px] rounded-[2.5rem] overflow-hidden flex items-center justify-center relative">
-                        <div class="text-white/20 text-9xl font-black italic">NISBA</div>
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
-                    </div>
+            <!-- Stats / Social Proof -->
+            <div class="mt-24 pt-10 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-8 animate-fade-in-up delay-400">
+                <div>
+                    <p class="text-4xl font-black text-white mb-1">+500</p>
+                    <p class="text-sm text-gray-400 font-medium">مسوق نشط</p>
                 </div>
-                <!-- Floating Elements -->
-                <div class="absolute -top-10 -right-10 glass-card p-6 shadow-2xl rotate-3 animate-pulse">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white">💰</div>
-                        <div class="text-right">
-                            <div class="text-xs font-bold text-slate-400">عمولة جديدة</div>
-                            <div class="text-lg font-black text-slate-900">+500 ريال</div>
-                        </div>
-                    </div>
+                <div>
+                    <p class="text-4xl font-black text-white mb-1">1.2M</p>
+                    <p class="text-sm text-gray-400 font-medium">ريال عمولات</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-black text-white mb-1">+50</p>
+                    <p class="text-sm text-gray-400 font-medium">علامة تجارية</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-black text-white mb-1">24/7</p>
+                    <p class="text-sm text-gray-400 font-medium">دعم متواصل</p>
                 </div>
             </div>
         </div>
-    </section>
+    </header>
 
-    <!-- Partners -->
-    <section class="py-24 border-y border-slate-100 bg-slate-50/30">
-        <div class="max-w-7xl mx-auto px-6">
-            <p class="text-center text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-16">نحن مدعومون بأفضل الحلول السحابية</p>
-            <div class="flex flex-wrap justify-center items-center gap-16 md:gap-24 grayscale opacity-30">
-                <img src="https://nisba.me/assets/img/qoyod.png" class="h-10 md:h-12 object-contain" alt="Qoyod">
-                <img src="https://nisba.me/assets/img/daftra.png" class="h-10 md:h-12 object-contain" alt="Daftra">
-                <img src="https://nisba.me/assets/img/zoho.png" class="h-10 md:h-12 object-contain" alt="Zoho">
-            </div>
+    <!-- Partners Ticker -->
+    <div class="bg-gray-50 py-10 border-b border-gray-100 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 text-center mb-8">
+            <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">شركتم مع كبرى الشركات التقنية</p>
         </div>
-    </section>
+        <div class="flex items-center justify-center gap-12 md:gap-24 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+            <span class="text-2xl font-black text-gray-400 flex items-center gap-2">
+                <span class="w-8 h-8 bg-gray-300 rounded-md"></span> Salla
+            </span>
+            <span class="text-2xl font-black text-gray-400 flex items-center gap-2">
+                <span class="w-8 h-8 bg-gray-300 rounded-md"></span> Zid
+            </span>
+            <span class="text-2xl font-black text-gray-400 flex items-center gap-2">
+                <span class="w-8 h-8 bg-gray-300 rounded-md"></span> Daftra
+            </span>
+            <span class="text-2xl font-black text-gray-400 flex items-center gap-2">
+                <span class="w-8 h-8 bg-gray-300 rounded-md"></span> Qoyod
+            </span>
+        </div>
+    </div>
 
-    <!-- Steps -->
-    <section id="how-it-works" class="py-32 relative">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-24">
-                <h2 class="section-title">ثلاث خطوات بسيطة لتبدأ</h2>
-                <p class="section-subtitle mx-auto">صممنا العملية لتكون سهلة وشفافة حتى تتمكن من التركيز على ما تفعله بشكل أفضل.</p>
+    <!-- Features -->
+    <section id="features" class="py-24 bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-20">
+                <span class="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block">مميزاتنا</span>
+                <h2 class="text-3xl md:text-5xl font-black text-primary-900 mb-6">لماذا تختار منصة نسبة؟</h2>
+                <p class="text-gray-500 text-lg">نقدم لك أدوات احترافية، تتبع دقيق، وعمولات مجزية تجعل من تسويقك رحلة ممتعة ومربحة.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="premium-card p-10 group">
-                    <div class="w-20 h-20 bg-primary-50 rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform duration-500">📝</div>
-                    <h3 class="text-2xl font-black mb-4">1. سجل حسابك</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed">انضم لشبكة شركاء نسبة خلال دقائق وابدأ رحلة الأرباح مع نظام مرن واحترافي.</p>
+                <!-- Feature 1 -->
+                <div class="group p-8 rounded-[2rem] bg-gray-50 hover:bg-white border border-transparent hover:border-gray-100 hover:shadow-2xl hover:shadow-primary-900/5 transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                        🚀
+                    </div>
+                    <h3 class="text-xl font-black text-gray-900 mb-3">عمولات عالية وفورية</h3>
+                    <p class="text-gray-500 leading-relaxed">احصل على أعلى نسب عمولة في السوق، مع نظام دفع سريع ومرن يناسب احتياجاتك.</p>
                 </div>
-                <div class="premium-card p-10 group">
-                    <div class="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform duration-500">🤝</div>
-                    <h3 class="text-2xl font-black mb-4">2. أضف عملاءك</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed">أضف بيانات العملاء المحتملين من خلال لوحة التحكم وتابع تقدمهم لحظة بلحظة.</p>
+
+                <!-- Feature 2 -->
+                <div class="group p-8 rounded-[2rem] bg-gray-50 hover:bg-white border border-transparent hover:border-gray-100 hover:shadow-2xl hover:shadow-primary-900/5 transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                        📊
+                    </div>
+                    <h3 class="text-xl font-black text-gray-900 mb-3">لوحة تحكم ذكية</h3>
+                    <p class="text-gray-500 leading-relaxed">تابع أداء حملاتك، عدد النقرات، والتحويلات لحظة بلحظة من خلال لوحة تحكم متطورة.</p>
                 </div>
-                <div class="premium-card p-10 group">
-                    <div class="w-20 h-20 bg-luxury-gold-light rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform duration-500">💰</div>
-                    <h3 class="text-2xl font-black mb-4">3. احصل على عمولتك</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed">بمجرد إتمام الصفقة من قبل مزود الخدمة، تضاف العمولة لرصيدك بشكل آلي وفوري.</p>
+
+                <!-- Feature 3 -->
+                <div class="group p-8 rounded-[2rem] bg-gray-50 hover:bg-white border border-transparent hover:border-gray-100 hover:shadow-2xl hover:shadow-primary-900/5 transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                        🤝
+                    </div>
+                    <h3 class="text-xl font-black text-gray-900 mb-3">دعم متواصل</h3>
+                    <p class="text-gray-500 leading-relaxed">فريق دعم مخصص لمساعدتك في كل خطوة، وتوفير المواد التسويقية اللازمة لنجاحك.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- FAQ -->
-    <section id="faq" class="py-32 bg-slate-950 text-white overflow-hidden relative">
-        <!-- Background Glow -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-500/10 rounded-full blur-[150px] -z-0"></div>
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-24 bg-gray-50 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-blue-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-20">
+                <span class="text-yellow-500 font-bold tracking-wider uppercase text-sm mb-2 block">خطوات بسيطة</span>
+                <h2 class="text-3xl md:text-5xl font-black text-primary-900 mb-6">كيف تبدأ الربح؟</h2>
+                <p class="text-gray-500 text-lg">عملية سهلة وسريعة لبدء جني الأرباح معنا، في 3 خطوات فقط.</p>
+            </div>
 
-        <div class="max-w-4xl mx-auto px-6 relative z-10">
-            <h2 class="text-4xl md:text-5xl font-black text-center mb-20">الأسئلة الشائعة</h2>
-            <div class="space-y-6">
-                <div class="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] backdrop-blur-md">
-                    <h4 class="text-xl font-black mb-4 text-primary-400">ما هي فكرة منصة نسبة؟</h4>
-                    <p class="text-slate-400 font-medium leading-relaxed">نسبة هي منصة تجمع بين المسوقين ومزودي الخدمات السحابية لتسهيل عملية الإحالة وتتبع العمولات بدقة وشفافية عالية.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+                <!-- Connecting Line (Desktop) -->
+                <div class="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gray-200 -z-10"></div>
+
+                <!-- Step 1 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-white shadow-xl rounded-full flex items-center justify-center relative z-10 mb-8 group-hover:scale-110 transition-transform duration-300">
+                        <span class="text-4xl">📝</span>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center font-bold text-white text-sm">1</div>
+                    </div>
+                    <h3 class="text-2xl font-black text-primary-900 mb-4">سجل مجاناً</h3>
+                    <p class="text-gray-500 leading-relaxed">أنشئ حسابك في ثوانٍ. لا توجد رسوم مخفية، التسجيل مجاني تماماً.</p>
                 </div>
-                <div class="bg-white/5 border border-white/10 p-8 rounded-[2.5rem] backdrop-blur-md">
-                    <h4 class="text-xl font-black mb-4 text-primary-400">متى يمكنني سحب أرباحي؟</h4>
-                    <p class="text-slate-400 font-medium leading-relaxed">بمجرد تحول حالة العميل إلى "تم البيع" وتأكيد الدفع من مزود الخدمة، يمكنك طلب سحب رصيدك فوراً عبر الوسائل المتاحة.</p>
+
+                <!-- Step 2 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-white shadow-xl rounded-full flex items-center justify-center relative z-10 mb-8 group-hover:scale-110 transition-transform duration-300">
+                        <span class="text-4xl">🔗</span>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center font-bold text-white text-sm">2</div>
+                    </div>
+                    <h3 class="text-2xl font-black text-primary-900 mb-4">انسخ رابطك</h3>
+                    <p class="text-gray-500 leading-relaxed">اختر المنتجات أو الخدمات التي تناسب جمهورك وانسخ رابط الإحالة الخاص بك.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 mx-auto bg-white border-4 border-white shadow-xl rounded-full flex items-center justify-center relative z-10 mb-8 group-hover:scale-110 transition-transform duration-300">
+                        <span class="text-4xl">💰</span>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center font-bold text-white text-sm">3</div>
+                    </div>
+                    <h3 class="text-2xl font-black text-primary-900 mb-4">اربح العمولات</h3>
+                    <p class="text-gray-500 leading-relaxed">احصل على عمولتك فور إتمام أي عملية بيع ناجحة عبر رابطك. اسحب أرباحك بسهولة.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Final CTA -->
-    <section class="max-w-7xl mx-auto px-6 py-32">
-        <div class="relative bg-primary-900 rounded-[4rem] p-16 md:p-24 overflow-hidden text-center">
-            <div class="absolute inset-0 opacity-20 hero-pattern"></div>
+    <!-- FAQ Section -->
+    <section id="faq" class="py-24 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-black text-primary-900 mb-4">الأسئلة الشائعة</h2>
+                <p class="text-gray-500">إجابات على الأسئلة الأكثر تكراراً</p>
+            </div>
+
+            <div class="space-y-4" x-data="{ active: null }">
+                <!-- FAQ Item 1 -->
+                <div class="border border-gray-100 rounded-2xl bg-gray-50 overflow-hidden hover:border-primary-100 transition-colors">
+                    <button @click="active === 1 ? active = null : active = 1" class="w-full flex items-center justify-between p-6 text-right">
+                        <span class="font-bold text-lg text-primary-900">هل التسجيل مجاني؟</span>
+                        <span class="text-primary-600 font-bold text-xl" x-text="active === 1 ? '-' : '+'">+</span>
+                    </button>
+                    <div x-show="active === 1" x-collapse class="px-6 pb-6 text-gray-600 leading-relaxed bg-gray-50/50">
+                        نعم، الانضمام إلى برنامج "نسبة" مجاني تماماً ولا توجد أي رسوم شهرية أو سنوية.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="border border-gray-100 rounded-2xl bg-gray-50 overflow-hidden hover:border-primary-100 transition-colors">
+                    <button @click="active === 2 ? active = null : active = 2" class="w-full flex items-center justify-between p-6 text-right">
+                        <span class="font-bold text-lg text-primary-900">متى يتم تحويل الأرباح؟</span>
+                        <span class="text-primary-600 font-bold text-xl" x-text="active === 2 ? '-' : '+'">+</span>
+                    </button>
+                    <div x-show="active === 2" x-collapse class="px-6 pb-6 text-gray-600 leading-relaxed bg-gray-50/50">
+                        يتم تحويل الأرباح شهرياً بمجرد وصول رصيدك إلى الحد الأدنى للسحب وهو 200 ريال.
+                    </div>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="border border-gray-100 rounded-2xl bg-gray-50 overflow-hidden hover:border-primary-100 transition-colors">
+                    <button @click="active === 3 ? active = null : active = 3" class="w-full flex items-center justify-between p-6 text-right">
+                        <span class="font-bold text-lg text-primary-900">كيف يمكنني تتبع مبيعاتي؟</span>
+                        <span class="text-primary-600 font-bold text-xl" x-text="active === 3 ? '-' : '+'">+</span>
+                    </button>
+                    <div x-show="active === 3" x-collapse class="px-6 pb-6 text-gray-600 leading-relaxed bg-gray-50/50">
+                        نوفر لك لوحة تحكم شاملة تعرض لك عدد الزيارات، النقرات، والمبيعات المحققة بشكل فوري ودقيق.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-4">
+        <div class="max-w-7xl mx-auto bg-primary-900 rounded-[3rem] relative overflow-hidden text-center py-24 px-6 md:px-12 shadow-2xl">
+            <!-- Background Decorations -->
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1" />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+            </div>
+
+            <div class="absolute top-10 left-10 w-32 h-32 bg-yellow-500/20 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-10 right-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+
             <div class="relative z-10">
-                <h2 class="text-4xl md:text-6xl font-black text-white mb-10 leading-tight">جاهز لزيادة أرباحك <br> بطريقة احترافية؟</h2>
-                <a href="{{ route('register') }}" class="btn-gold py-6 px-16 text-2xl mx-auto inline-flex">ابدأ رحلتك الآن</a>
+                <h2 class="text-4xl md:text-6xl font-black text-white mb-8">جاهز لتبدأ رحلة الربح؟</h2>
+                <p class="text-blue-100 text-xl mb-12 max-w-2xl mx-auto">التسجيل مجاني، والفرص لا محدودة. انضم إلينا اليوم وغير مستقبلك المالي.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{{ route('register') }}" style="background-color: #FFD700 !important; color: #051d2e !important;" class="px-10 py-5 font-black text-lg rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-yellow-700/20 transform hover:-translate-y-1 transition-all">
+                        أنشئ حساب مجاني
+                    </a>
+                    <a href="{{ route('login') }}" class="px-10 py-5 bg-transparent border-2 border-white/20 hover:bg-white/10 text-white font-bold text-lg rounded-2xl transition-all">
+                        لديك حساب بالفعل؟
+                    </a>
+                </div>
             </div>
-            <!-- Glow effect -->
-            <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl"></div>
         </div>
     </section>
 
-    <footer class="py-12 border-t border-slate-100">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center font-black text-lg">%</div>
-                <span class="text-xl font-black tracking-tight text-slate-900">نسبة</span>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-primary-900 rounded-xl flex items-center justify-center font-black text-white text-lg shadow-lg">
+                    %
+                </div>
+                <span class="text-2xl font-black text-primary-900">نسبة</span>
             </div>
-            <p class="text-slate-400 font-bold text-sm">جميع الحقوق محفوظة &copy; {{ date('Y') }} منصة نسبة</p>
-            <div class="flex gap-6">
-                <a href="#" class="text-slate-400 hover:text-primary-600 transition-colors">Twitter</a>
-                <a href="#" class="text-slate-400 hover:text-primary-600 transition-colors">LinkedIn</a>
+            <div class="flex flex-wrap justify-center gap-8 text-sm font-medium text-gray-500">
+                <a href="#" class="hover:text-primary-900 transition">الشروط والأحكام</a>
+                <a href="#" class="hover:text-primary-900 transition">سياسة الخصوصية</a>
+                <a href="#" class="hover:text-primary-900 transition">تواصل معنا</a>
             </div>
+            <p class="text-sm text-gray-400">© 2026 منصة نسبة. جميع الحقوق محفوظة.</p>
         </div>
     </footer>
+
 </body>
 
 </html>

@@ -2,7 +2,6 @@
 
 use Livewire\Volt\Component;
 use App\Models\Lead;
-use App\Models\ReferralLink;
 
 new class extends Component {
     public $search = '';
@@ -14,30 +13,81 @@ new class extends Component {
     public $company_name = '';
     public $city = '';
     public $client_phone = '';
+    public $sector = '';
     public $needs = '';
     public $recommended_systems = [];
 
-    public function addLead()
+    public $leadId = null;
+
+    public function saveLead()
     {
         $this->validate([
             'client_name' => 'required|min:3',
             'client_phone' => 'required',
             'city' => 'required',
+            'sector' => 'nullable|string|max:255',
         ]);
 
-        auth()->user()->leads()->create([
-            'client_name' => $this->client_name,
-            'company_name' => $this->company_name,
-            'city' => $this->city,
-            'client_phone' => $this->client_phone,
-            'needs' => $this->needs,
-            'recommended_systems' => $this->recommended_systems,
-            'status' => 'under_review',
-        ]);
+        if ($this->leadId) {
+            $lead = auth()->user()->leads()->find($this->leadId);
+            $lead->update([
+                'client_name' => $this->client_name,
+                'company_name' => $this->company_name,
+                'city' => $this->city,
+                'client_phone' => $this->client_phone,
+                'sector' => $this->sector,
+                'needs' => $this->needs,
+                'recommended_systems' => $this->recommended_systems,
+            ]);
+            $message = 'تم تحديث بيانات العميل بنجاح!';
+        } else {
+            auth()->user()->leads()->create([
+                'client_name' => $this->client_name,
+                'company_name' => $this->company_name,
+                'city' => $this->city,
+                'client_phone' => $this->client_phone,
+                'sector' => $this->sector,
+                'needs' => $this->needs,
+                'recommended_systems' => $this->recommended_systems,
+                'status' => 'under_review',
+            ]);
+            $message = 'تم إضافة العميل بنجاح!';
+        }
 
-        $this->reset(['client_name', 'company_name', 'city', 'client_phone', 'needs', 'recommended_systems', 'showModal']);
-        $this->dispatch('lead-added');
-        $this->dispatch('notify', message: 'تم إضافة العميل بنجاح!');
+        $this->reset(['leadId', 'client_name', 'company_name', 'city', 'client_phone', 'sector', 'needs', 'recommended_systems', 'showModal']);
+        $this->dispatch('lead-saved');
+        $this->dispatch('toast', type: 'success', message: $message);
+    }
+
+    public function editLead($id)
+    {
+        $lead = auth()->user()->leads()->find($id);
+        if (!$lead) return;
+
+        $this->leadId = $lead->id;
+        $this->client_name = $lead->client_name;
+        $this->company_name = $lead->company_name;
+        $this->city = $lead->city;
+        $this->client_phone = $lead->client_phone;
+        $this->sector = $lead->sector;
+        $this->needs = $lead->needs;
+        $this->recommended_systems = $lead->recommended_systems ?? [];
+        $this->showModal = true;
+    }
+
+    public function deleteLead($id)
+    {
+        $lead = auth()->user()->leads()->find($id);
+        if ($lead) {
+            $lead->delete();
+            $this->dispatch('toast', type: 'success', message: 'تم حذف العميل بنجاح');
+        }
+    }
+
+    public function openModal()
+    {
+        $this->reset(['leadId', 'client_name', 'company_name', 'city', 'client_phone', 'sector', 'needs', 'recommended_systems']);
+        $this->showModal = true;
     }
 
     public function toggleSystem($systemName)
@@ -68,281 +118,325 @@ new class extends Component {
         return [
             'leads' => $leads,
             'available_systems' => [
-                ['name' => 'قيود', 'id' => 'qoyod', 'logo' => 'https://www.qoyod.com/wp-content/uploads/2021/05/logo_qoyod.svg'],
-                ['name' => 'أودو', 'id' => 'odoo', 'logo' => 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Odoo_logo.svg'],
-                ['name' => 'دفترة', 'id' => 'daftra', 'logo' => 'https://www.daftra.com/images/daftra-logo.png'],
+                ['name' => 'قيود', 'id' => 'qoyod'],
+                ['name' => 'دفترة', 'id' => 'daftra'],
             ]
         ];
     }
 }; ?>
 
-<div class="space-y-10 py-4">
-    <!-- Header & Actions -->
-    <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-2">
-        <div class="space-y-4">
-            <span class="badge-primary !px-4 !py-1.5">{{ __('إدارة المبيعات') }}</span>
-            <h3 class="heading-md !mb-0">{{ __('قائمة العملاء المحتملين') }}</h3>
-            <p class="text-body !text-sm">{{ __('تابع نمو أعمالك وراقب رحلة كل عميل نحو النجاح والبيع.') }}</p>
+<div class="card">
+    <!-- Header -->
+    <div class="card-header flex items-center justify-between">
+        <div>
+            <h3 class="section-title">قائمة العملاء</h3>
+            <p class="section-subtitle">إجمالي {{ count($leads) }} سجلات</p>
         </div>
+        <button @click="$wire.openModal()" class="btn btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            إضافة عميل جديد
+        </button>
+    </div>
 
-        <div class="flex flex-col sm:flex-row items-center gap-4">
-            <div class="relative w-full sm:w-80 group">
-                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-deep-blue-400 group-focus-within:text-cyber-600 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
-                <input type="text" wire:model.live="search" placeholder="بحث بالاسم، الشركة، الهاتف..."
-                    class="input-modern !py-4 !pr-12">
-            </div>
+    <!-- Filters -->
+    <div class="px-6 py-4 border-b border-border-light flex flex-wrap items-center gap-3">
+        <input type="text" wire:model.live="search" placeholder="بحث بالاسم، الشركة، الهاتف..." class="form-input max-w-md">
 
-            <button @click="$wire.set('showModal', true)" class="btn-primary w-full sm:w-auto !py-4 !px-8">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path>
-                </svg>
-                {{ __('إضافة عميل جديد') }}
+        <div class="flex items-center gap-2">
+            <button wire:click="$set('status_filter', '')"
+                class="btn btn-sm {{ $status_filter === '' ? 'btn-primary' : 'btn-outline' }}">
+                الكل
+            </button>
+            <button wire:click="$set('status_filter', 'under_review')"
+                class="btn btn-sm {{ $status_filter === 'under_review' ? 'btn-primary' : 'btn-outline' }}">
+                قيد المراجعة
+            </button>
+            <button wire:click="$set('status_filter', 'sold')"
+                class="btn btn-sm {{ $status_filter === 'sold' ? 'btn-primary' : 'btn-outline' }}">
+                مباع
+            </button>
+            <button wire:click="$set('status_filter', 'contacting')"
+                class="btn btn-sm {{ $status_filter === 'contacting' ? 'btn-primary' : 'btn-outline' }}">
+                جاري التواصل
             </button>
         </div>
     </div>
 
-    <!-- Filters & Visualization -->
-    <div class="flex flex-wrap items-center gap-3 px-2">
-        <button wire:click="$set('status_filter', '')" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ $status_filter === '' ? 'bg-deep-blue-900 text-white shadow-soft' : 'bg-white text-deep-blue-400 border border-deep-blue-100 hover:border-cyber-200 hover:text-cyber-600' }}">
-            {{ __('الكل') }}
-        </button>
-        <button wire:click="$set('status_filter', 'under_review')" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ $status_filter === 'under_review' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white text-amber-500 border border-amber-100/50 hover:bg-amber-50' }}">
-            {{ __('تحت المراجعة') }}
-        </button>
-        <button wire:click="$set('status_filter', 'contacting')" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ $status_filter === 'contacting' ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20' : 'bg-white text-primary-600 border border-primary-100/50 hover:bg-primary-50' }}">
-            {{ __('جاري التواصل') }}
-        </button>
-        <button wire:click="$set('status_filter', 'sold')" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all {{ $status_filter === 'sold' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-emerald-500 border border-emerald-100/50 hover:bg-emerald-50' }}">
-            {{ __('تم البيع') }}
-        </button>
-    </div>
-
-    <!-- Table Section -->
-    <div class="neo-card overflow-hidden !bg-white">
-        <div class="overflow-x-auto">
-            <table class="w-full text-right border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-100">
-                        <th class="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('العميل والمنشأة') }}</th>
-                        <th class="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('قنوات التواصل') }}</th>
-                        <th class="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('الحالة الحالية') }}</th>
-                        <th class="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('الموقع والجغرافيا') }}</th>
-                        <th class="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('القيمة المقدرة') }}</th>
-                        <th class="py-5 px-8 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{{ __('الملف') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-50">
-                    @forelse($leads as $lead)
-                    <tr class="hover:bg-slate-50/50 transition-all duration-300 group">
-                        <td class="py-6 px-8">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-400 group-hover:bg-primary-600 group-hover:text-white group-hover:border-primary-600 transition-all duration-500 shadow-sm">
-                                    {{ mb_substr($lead->client_name, 0, 1) }}
-                                </div>
-                                <div>
-                                    <span class="block text-sm font-black text-slate-900 mb-0.5 group-hover:text-primary-700 transition-colors">{{ $lead->client_name }}</span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-1.5 h-1.5 bg-primary-400 rounded-full"></span>
-                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">{{ $lead->company_name ?: __('فرد') }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-6 px-8">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-xs font-black text-slate-900 tracking-wider" dir="ltr">{{ $lead->client_phone }}</span>
-                                <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ __('مكالمة / واتساب') }}</span>
-                            </div>
-                        </td>
-                        <td class="py-6 px-8">
-                            @php
-                            $statusConfig = [
-                            'under_review' => ['bg' => 'bg-amber-50', 'text' => 'text-amber-600', 'border' => 'border-amber-100/50', 'label' => 'تحت المراجعة'],
-                            'contacting' => ['bg' => 'bg-primary-50', 'text' => 'text-primary-600', 'border' => 'border-primary-100/50', 'label' => 'جاري التواصل'],
-                            'sold' => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-600', 'border' => 'border-emerald-100/50', 'label' => 'تم البيع'],
-                            'cancelled' => ['bg' => 'bg-rose-50', 'text' => 'text-rose-600', 'border' => 'border-rose-100/50', 'label' => 'ملغي']
-                            ];
-                            $config = $statusConfig[$lead->status] ?? ['bg' => 'bg-slate-50', 'text' => 'text-slate-500', 'border' => 'border-slate-100', 'label' => $lead->status];
-                            @endphp
-                            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full {{ $config['bg'] }} {{ $config['text'] }} border {{ $config['border'] }} shadow-sm">
-                                <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-                                <span class="text-[9px] font-black uppercase tracking-[0.2em]">{{ $config['label'] }}</span>
-                            </div>
-                        </td>
-                        <td class="py-6 px-8">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                <span class="text-xs font-black text-slate-500 uppercase tracking-widest">{{ $lead->city }}</span>
-                            </div>
-                        </td>
-                        <td class="py-6 px-8">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-sm font-black text-slate-900">0.00</span>
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">ر.س</span>
-                            </div>
-                        </td>
-                        <td class="py-6 px-8 text-left">
-                            <button class="w-10 h-10 rounded-xl bg-slate-50 text-slate-300 hover:bg-slate-900 group/btn hover:text-white transition-all duration-300 shadow-sm flex items-center justify-center">
-                                <svg class="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>اسم العميل</th>
+                    <th>القطاع / الأنظمة</th>
+                    <th>المدينة</th>
+                    <th>العمولة</th>
+                    <th>رقم الهاتف</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($leads as $lead)
+                <tr class="animate-fade-in-up" style="animation-delay: {{ $loop->index * 100 }}ms">
+                    <td>
+                        <div>
+                            <p class="font-semibold text-primary-900">{{ $lead->client_name }}</p>
+                            @if($lead->company_name)
+                            <p class="text-xs text-secondary">{{ $lead->company_name }}</p>
+                            @endif
+                        </div>
+                    </td>
+                    <td>
+                        <span class="block mb-1">{{ $lead->sector ?? '-' }}</span>
+                        @if($lead->recommended_systems)
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($lead->recommended_systems as $sysId)
+                            <img src="{{ asset('images/systems/'.$sysId.'.png') }}" class="w-10 h-10 object-contain" title="{{ $sysId }}" alt="{{ $sysId }}">
+                            @endforeach
+                        </div>
+                        @endif
+                    </td>
+                    <td>{{ $lead->city }}</td>
+                    <td>
+                        @if($lead->commission_type === 'fixed')
+                        <span class="font-bold text-green-600">{{ number_format($lead->commission_rate) }} ريال</span>
+                        @elseif($lead->commission_rate)
+                        <span class="font-bold text-blue-600">{{ $lead->commission_rate }}%</span>
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td dir="ltr" class="text-right">{{ $lead->client_phone }}</td>
+                    <td>{{ $lead->created_at->format('Y/m/d') }}</td>
+                    <td>
+                        @php
+                        $statusConfig = [
+                        'under_review' => ['class' => 'badge-pending', 'label' => 'قيد المراجعة'],
+                        'sold' => ['class' => 'badge-active', 'label' => 'مباع'],
+                        'contacting' => ['class' => 'badge-info bg-blue-100 text-blue-800', 'label' => 'جاري التواصل'],
+                        'cancelled' => ['class' => 'badge-rejected', 'label' => 'ملغي']
+                        ];
+                        $config = $statusConfig[$lead->status] ?? ['class' => 'badge-pending', 'label' => $lead->status];
+                        @endphp
+                        <span class="badge {{ $config['class'] }}">{{ $config['label'] }}</span>
+                    </td>
+                    <td>
+                    <td>
+                    <td>
+                        <div class="relative" x-data="{ open: false, showDeleteModal: false, deletingId: null }">
+                            <button @click="open = !open" @click.away="open = false" class="text-secondary hover:text-primary-900 transition-colors p-1 rounded-full hover:bg-gray-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
                                 </svg>
                             </button>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="py-24 text-center">
-                            <div class="flex flex-col items-center justify-center">
-                                <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mb-8 border border-slate-100/50 animate-float">
-                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
-                                </div>
-                                <h4 class="text-lg font-black text-slate-900 tracking-tighter mb-2">{{ __('لا توجد سجلات حالياً') }}</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">{{ __('ابدأ بإضافة أول عميل محتمل لتبدأ رحلة الربح الفاخرة') }}</p>
+                            <div x-show="open"
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-border-light z-10 py-1"
+                                style="display: none;">
+                                <button wire:click="editLead({{ $lead->id }})" class="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-900">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                        </svg>
+                                        تعديل الطلب
+                                    </div>
+                                </button>
+                                </button>
+                                <button @click="deletingId = {{ $lead->id }}; showDeleteModal = true; open = false" class="block w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        حذف الطلب
+                                    </div>
+                                </button>
                             </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+
+                            <!-- Professional Delete Confirmation Modal -->
+                            <template x-teleport="body">
+                                <div x-show="showDeleteModal" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+                                    <div class="fixed inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
+
+                                    <div class="flex min-h-full items-center justify-center p-4">
+                                        <div class="relative w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all text-center">
+                                            <div class="mb-6">
+                                                <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
+                                                    <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                </div>
+                                                <h3 class="text-2xl font-black text-blue-900 mb-2">هل أنت متأكد؟</h3>
+                                                <p class="text-blue-500 font-medium">سيتم حذف بيانات العميل نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
+                                            </div>
+
+                                            <div class="flex flex-col gap-3">
+                                                <button
+                                                    @click="$wire.deleteLead(deletingId); showDeleteModal = false"
+                                                    class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:shadow-red-300 transition-all transform active:scale-95">
+                                                    تأكيد الحذف
+                                                </button>
+                                                <button
+                                                    @click="showDeleteModal = false"
+                                                    class="w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-100 transition-all font-bold">
+                                                    إلغاء
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" class="text-center py-12">
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <p class="empty-state-text">لا توجد طلبات سحب حالياً</p>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
-    <!-- Modal Dialog -->
+    <!-- Add Lead Modal -->
     <template x-teleport="body">
         <div x-show="$wire.showModal"
-            x-transition:enter="transition ease-out duration-500"
+            x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
-            class="fixed inset-0 overflow-y-auto px-4" style="display: none; z-index: 1000 !important;">
+            class="fixed inset-0 overflow-y-auto px-4 z-50" style="display: none;">
             <div class="flex items-center justify-center min-h-screen">
-                <div @click="$wire.set('showModal', false)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"></div>
+                <div @click="$wire.set('showModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
 
-                <div class="bg-white rounded-[3.5rem] shadow-premium relative w-full max-w-4xl overflow-hidden border border-white"
-                    x-transition:enter="transition ease-out duration-500"
-                    x-transition:enter-start="opacity-0 translate-y-32 scale-90"
+                <div class="bg-white rounded-2xl shadow-xl relative w-full max-w-2xl"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 scale-100">
 
-                    <!-- Decorative Backgrounds -->
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary-100 rounded-full blur-[100px] -mr-32 -mt-32 opacity-30"></div>
-                    <div class="absolute bottom-0 left-0 w-80 h-80 bg-indigo-100 rounded-full blur-[120px] -ml-40 -mb-40 opacity-30"></div>
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 border-b border-border-light flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-primary-900">{{ $leadId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد' }}</h3>
+                        <button @click="$wire.set('showModal', false)" class="text-secondary hover:text-primary-900">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
 
-                    <div class="relative flex flex-col h-[85vh]">
-                        <!-- Modal Header -->
-                        <div class="p-12 pb-8 flex items-center justify-between border-b border-slate-50">
-                            <div>
-                                <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ __('إضافة عميل محتمل جديد') }}</h3>
-                                <p class="text-xs text-slate-400 font-bold mt-2 uppercase tracking-[0.2em]">{{ __('أدخل تفاصيل العميل بعناية لضمان متابعة دقيقة') }}</p>
-                            </div>
-                            <button @click="$wire.set('showModal', false)" class="w-14 h-14 flex items-center justify-center bg-slate-50 rounded-2xl text-slate-400 hover:text-slate-900 transition-all hover:rotate-90 duration-500">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+                    <!-- Modal Body -->
+                    <form wire:submit.prevent="saveLead" class="p-6 space-y-4">
+                        <div class="form-group">
+                            <label class="form-label">اسم العميل *</label>
+                            <input type="text" wire:model="client_name" class="form-input" placeholder="أدخل اسم العميل">
+                            @error('client_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
-                        <form wire:submit.prevent="addLead" class="flex-1 overflow-y-auto p-12 space-y-12">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div class="md:col-span-2">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('الاسم الكامل للعميل') }}</label>
-                                    <input type="text" wire:model="client_name" placeholder="أدخل اسم العميل كما هو..."
-                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
-                                    @error('client_name') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                                </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label class="form-label">اسم الشركة</label>
+                                <input type="text" wire:model="company_name" class="form-input" placeholder="اختياري">
+                            </div>
+                        </div>
 
-                                <div class="space-y-4">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('اسم الشركة / المؤسسة') }}</label>
-                                    <input type="text" wire:model="company_name" placeholder="اختياري..."
-                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
-                                </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label class="form-label">رقم الهاتف *</label>
+                                <input type="text" wire:model="client_phone" class="form-input" placeholder="05xxxxxxxx" dir="ltr">
+                                @error('client_phone') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
 
-                                <div class="space-y-4">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('رقم جوال العميل') }}</label>
-                                    <input type="number" wire:model="client_phone" placeholder="05xxxxxxxx" dir="ltr"
-                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono placeholder:text-slate-300 tracking-wider">
-                                    @error('client_phone') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                                </div>
+                            <div class="form-group">
+                                <label class="form-label">القطاع / المجال</label>
+                                <select wire:model="sector" class="form-input">
+                                    <option value="">اختر القطاع</option>
+                                    <option value="العقارات">العقارات</option>
+                                    <option value="التقنية والبرمجة">التقنية والبرمجة</option>
+                                    <option value="التسويق والدعاية">التسويق والدعاية</option>
+                                    <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
+                                    <option value="التعليم">التعليم</option>
+                                    <option value="الصحة">الصحة</option>
+                                    <option value="الخدمات المالية">الخدمات المالية</option>
+                                    <option value="المقاولات والبناء">المقاولات والبناء</option>
+                                    <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+                        </div>
 
-                                <div class="md:col-span-2">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('المدينة أو المنطقة') }}</label>
-                                    <div class="relative">
-                                        <select wire:model="city" class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all appearance-none cursor-pointer">
-                                            <option value="">{{ __('اختر المدينة...') }}</option>
-                                            <option value="الرياض">الرياض</option>
-                                            <option value="جدة">جدة</option>
-                                            <option value="الدمام">الدمام</option>
-                                            <option value="مكة">مكة المكرمة</option>
-                                            <option value="المدينة">المدينة المنورة</option>
-                                            <option value="أخرى">أخرى</option>
-                                        </select>
-                                        <div class="absolute inset-y-0 left-8 flex items-center pointer-events-none text-slate-300">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </div>
+                        <div class="form-group">
+                            <label class="form-label">المدينة *</label>
+                            <select wire:model="city" class="form-select">
+                                <option value="">اختر المدينة</option>
+                                <option value="الرياض">الرياض</option>
+                                <option value="جدة">جدة</option>
+                                <option value="الدمام">الدمام</option>
+                                <option value="مكة">مكة المكرمة</option>
+                                <option value="المدينة">المدينة المنورة</option>
+                            </select>
+                            @error('city') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">الاحتياجات</label>
+                            <textarea wire:model="needs" class="form-textarea" rows="3" placeholder="وصف احتياجات العميل"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">الأنظمة المقترحة</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                @foreach($available_systems as $system)
+                                <button type="button"
+                                    wire:click="toggleSystem('{{ $system['id'] }}')"
+                                    class="relative group flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-blue-50/50' : 'border-gray-100 hover:border-blue-200 bg-white' }}">
+
+                                    <div class="h-12 flex items-center justify-center mb-3 transition-transform group-hover:scale-105">
+                                        <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all">
                                     </div>
-                                    @error('city') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                                </div>
 
-                                <div class="md:col-span-2">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('وصف الاحتياجات والمتطلبات') }}</label>
-                                    <textarea wire:model="needs" rows="3" placeholder="ما الذي يبحث عنه العميل بالتحديد؟"
-                                        class="w-full px-8 py-6 bg-slate-50 border-none rounded-[1.75rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300 resize-none leading-relaxed"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="space-y-8">
-                                <div class="flex items-center gap-4 px-2">
-                                    <div class="w-1.5 h-6 bg-primary-500 rounded-full"></div>
-                                    <label class="block text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">{{ __('الأنظمة والخدمات المقترحة') }}</label>
-                                </div>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    @foreach($available_systems as $system)
-                                    <button type="button"
-                                        wire:click="toggleSystem('{{ $system['id'] }}')"
-                                        class="group relative flex flex-col items-center justify-center p-8 border border-slate-100 rounded-[2.5rem] transition-all duration-500 {{ in_array($system['id'], $recommended_systems) ? 'bg-primary-50 border-primary-200 shadow-xl shadow-primary-500/10' : 'bg-white hover:border-primary-100 hover:bg-slate-50/50 hover:-translate-y-1' }}">
-                                        <div class="relative h-14 mb-5 flex items-center justify-center">
-                                            <img src="{{ $system['logo'] }}" class="h-10 transition-all duration-700 {{ in_array($system['id'], $recommended_systems) ? 'scale-125' : 'grayscale opacity-20 group-hover:grayscale-0 group-hover:opacity-100' }}" alt="{{ $system['name'] }}">
-                                        </div>
-                                        <span class="text-[10px] font-black tracking-[0.2em] uppercase transition-colors duration-500 {{ in_array($system['id'], $recommended_systems) ? 'text-primary-700' : 'text-slate-400 group-hover:text-slate-600' }}">{{ $system['name'] }}</span>
-
-                                        @if(in_array($system['id'], $recommended_systems))
-                                        <div class="absolute top-4 right-4 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-primary-500/40 animate-bounce-subtle">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-primary-900' : 'border-gray-300' }}">
+                                            @if(in_array($system['id'], $recommended_systems))
+                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                                             </svg>
+                                            @endif
                                         </div>
-                                        @endif
-                                    </button>
-                                    @endforeach
-                                </div>
+                                        <span class="font-bold text-sm {{ in_array($system['id'], $recommended_systems) ? 'text-primary-900' : 'text-gray-500 group-hover:text-gray-700' }}">{{ $system['name'] }}</span>
+                                    </div>
+
+                                    @if(in_array($system['id'], $recommended_systems))
+                                    <div class="absolute inset-0 border-2 border-primary-900 rounded-xl pointer-events-none"></div>
+                                    @endif
+                                </button>
+                                @endforeach
                             </div>
-                        </form>
+                        </div>
 
                         <!-- Modal Footer -->
-                        <div class="p-10 px-12 bg-slate-50/50 backdrop-blur-md border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest max-w-xs text-center sm:text-right">
-                                {{ __('يرجى ملاحظة أن إضافة العميل تعني الموافقة على شروط سياسة الخصوصية وحماية البيانات.') }}
-                            </p>
-                            <div class="flex items-center gap-4 w-full sm:w-auto">
-                                <button type="button" @click="$wire.set('showModal', false)" class="flex-1 sm:flex-none px-10 py-5 rounded-2xl text-xs font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">
-                                    {{ __('إلغاء') }}
-                                </button>
-                                <button type="button" wire:click="addLead" class="flex-1 sm:flex-none btn-luxury !px-12 !py-5 !rounded-2xl !text-xs shadow-2xl shadow-primary-600/20">
-                                    {{ __('حفظ وإرسال الملف') }}
-                                </button>
-                            </div>
+                        <div class="flex items-center justify-end gap-3 pt-4">
+                            <button type="button" @click="$wire.set('showModal', false)" class="btn btn-outline">
+                                إلغاء
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                {{ $leadId ? 'تحديث العميل' : 'حفظ العميل' }}
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>

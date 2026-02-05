@@ -6,151 +6,200 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }} - الإدارة</title>
+    <title>{{ config('app.name', 'Nisba') }} - لوحة الإدارة</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="antialiased text-blue-900 bg-blue-50 flex min-h-screen font-cairo">
-    <!-- Sidebar -->
-    <aside class="w-72 bg-white fixed h-full z-50 shadow-sm border-l border-blue-100 transition-all duration-300">
-        <div class="p-8 h-full flex flex-col justify-between">
-            <div>
-                <div class="flex items-center gap-3 mb-12">
-                    <div class="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                        <span class="font-black text-xl text-white">%</span>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="text-xl font-black text-blue-900 tracking-wider">NISBA</span>
-                        <span class="text-[10px] text-luxury-gold font-bold tracking-[0.2em] uppercase">Private Admin</span>
-                    </div>
+<body class="antialiased bg-gray-50 font-cairo"
+    x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false', mobileOpen: false }"
+    x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
+
+    <!-- Mobile Sidebar System -->
+    <div x-show="mobileOpen" style="display: none;" class="relative z-50 lg:hidden" aria-modal="true">
+        <div x-show="mobileOpen" x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm" @click="mobileOpen = false"></div>
+
+        <div class="fixed inset-0 flex flex-row-reverse">
+            <div x-show="mobileOpen" x-transition:enter="transition ease-in-out duration-300 transform" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in-out duration-300 transform" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="relative flex w-full max-w-xs flex-1 flex-col bg-primary-900 pt-5 pb-4">
+
+                <div class="absolute top-0 left-0 -ml-12 pt-2">
+                    <button type="button" class="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" @click="mobileOpen = false">
+                        <span class="sr-only">إغلاق القائمة</span>
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
 
-                <nav class="space-y-3">
-                    <a href="{{ route('admin.dashboard') }}" class="group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.dashboard') ? 'bg-blue-900 text-white shadow-lg' : 'text-blue-500 hover:text-blue-900 hover:bg-blue-50' }}">
-                        <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                <div class="flex shrink-0 items-center px-4 gap-3">
+                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg">
+                        <span class="font-black text-xl text-primary-900">ن</span>
+                    </div>
+                    <span class="text-xl font-black text-white">نسبة</span>
+                </div>
+
+                <nav class="mt-8 flex-1 space-y-2 px-4 overflow-y-auto">
+                    @foreach([
+                    ['route' => 'admin.dashboard', 'title' => 'لوحة القيادة', 'icon' => 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
+                    ['route' => 'admin.leads', 'title' => 'إدارة العملاء', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
+                    ['route' => 'admin.affiliates', 'title' => 'المسوقين', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
+                    ['route' => 'admin.payouts', 'title' => 'طلبات السحب', 'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
+                    ['route' => 'admin.settings', 'title' => 'الإعدادات', 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z']
+                    ] as $item)
+                    <a href="{{ route($item['route']) }}" class="group flex items-center px-4 py-3 text-base font-bold rounded-xl {{ request()->routeIs($item['route']) ? 'bg-primary-800 text-white' : 'text-primary-100 hover:bg-primary-800 hover:text-white' }}">
+                        <svg class="ml-4 h-6 w-6 shrink-0 {{ request()->routeIs($item['route']) ? 'text-yellow-400' : 'text-primary-300 group-hover:text-yellow-400' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                         </svg>
-                        <span class="font-bold">لوحة القيادة</span>
+                        {{ $item['title'] }}
                     </a>
-                    <a href="{{ route('admin.leads') }}" class="group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.leads') ? 'bg-blue-900 text-white shadow-lg' : 'text-blue-500 hover:text-blue-900 hover:bg-blue-50' }}">
-                        <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        <span class="font-bold">قائمة العملاء</span>
-                    </a>
-                    <a href="{{ route('admin.affiliates') }}" class="group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.affiliates') ? 'bg-blue-900 text-white shadow-lg' : 'text-blue-500 hover:text-blue-900 hover:bg-blue-50' }}">
-                        <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span class="font-bold">المسوقين</span>
-                    </a>
-                    <a href="{{ route('admin.payouts') }}" class="group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.payouts') ? 'bg-blue-900 text-white shadow-lg' : 'text-blue-500 hover:text-blue-900 hover:bg-blue-50' }}">
-                        <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        <span class="font-bold">طلبات السحب</span>
-                    </a>
-                    <a href="{{ route('admin.settings') }}" class="group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 {{ request()->routeIs('admin.settings') ? 'bg-blue-900 text-white shadow-lg' : 'text-blue-500 hover:text-blue-900 hover:bg-blue-50' }}">
-                        <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        <span class="font-bold">الإعدادات</span>
-                    </a>
-                    
+                    @endforeach
                 </nav>
             </div>
 
-            <div class="border-t border-blue-100 pt-8">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="flex items-center gap-4 px-5 py-4 text-red-500 font-bold hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all w-full text-right">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                        <span>خروج آمن</span>
-                    </button>
-                </form>
+            <div class="w-14 shrink-0">
+                <!-- Force sidebar to shrink to fit close icon -->
             </div>
         </div>
-    </aside>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 mr-72 p-10 min-h-screen">
-        <header class="flex justify-between items-center mb-12 bg-white border border-blue-100 p-6 rounded-3xl sticky top-6 z-40 shadow-sm">
-            <div>
-                <h2 class="text-3xl font-black text-blue-900 uppercase tracking-tight">{{ $header ?? '' }}</h2>
-                <p class="text-blue-500 text-sm font-medium mt-1">Nisba Analytics Platform</p>
-            </div>
-            <div class="flex items-center gap-6">
-                <!-- Notifications Dropdown (Admin) -->
-                <x-dropdown align="right" width="150" contentClasses="bg-white shadow-2xl border border-deep-blue-100 rounded-2xl">
-                    <x-slot name="trigger">
-                        <button class="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-400 hover:bg-blue-100 hover:text-cyber-600 transition-all duration-300">
-                            <span class="absolute top-2 right-2 w-2 h-2 bg-rose-accent-500 rounded-full border-2 border-white shadow-glow-rose animate-pulse-glow"></span>
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                            </svg>
-                        </button>
-                    </x-slot>
-                    <x-slot name="content">
-                        <div class="p-4">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-black text-deep-blue-900">{{ __('الإشعارات') }}</h3>
-                                <span class="badge-primary !px-3 !py-1 !text-xs">3 {{ __('جديد') }}</span>
-                            </div>
+    <!-- Desktop Layout -->
+    <div class="min-h-screen bg-gray-50 flex flex-row-reverse relative">
+        <!-- Desktop Sidebar (Fixed) -->
+        <aside class="hidden lg:flex flex-col fixed inset-y-0 right-0 z-50 bg-primary-900 shadow-2xl transition-all duration-300 overflow-y-auto border-l border-white/10"
+            :class="sidebarOpen ? 'w-64' : 'w-20'">
 
-                            <!-- Notification Item -->
-                            <a href="#" class="block p-4 hover:bg-deep-blue-50 rounded-xl transition-colors">
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 bg-electric-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-5 h-5 text-electric-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-deep-blue-900">{{ __('عميل جديد') }}</p>
-                                        <p class="text-xs text-deep-blue-500 mt-1">{{ __('تم إضافة عميل جديد بنجاح') }}</p>
-                                        <p class="text-xs text-deep-blue-400 mt-1">{{ __('منذ 5 دقائق') }}</p>
-                                    </div>
-                                </div>
-                            </a>
-
-                            <div class="mt-3 pt-3 border-t border-deep-blue-100">
-                                <a href="#" class="block text-center text-sm font-bold text-cyber-600 hover:text-cyber-700 py-2">
-                                    {{ __('عرض جميع الإشعارات →') }}
-                                </a>
-                            </div>
-                        </div>
-                    </x-slot>
-                </x-dropdown>
-
-                <div class="h-12 w-[1px] bg-blue-100"></div>
-
-                <div class="flex items-center gap-4 group cursor-pointer">
-                    <div class="text-left rtl:text-right">
-                        <p class="text-sm font-black text-blue-900">{{ auth()->user()->name }}</p>
-                        <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest leading-tight">Administrator</p>
+            <!-- Logo area -->
+            <div class="flex h-20 shrink-0 items-center justify-between px-4 bg-primary-950 border-b border-white/10 sticky top-0 z-10 backdrop-blur-md">
+                <div class="flex items-center gap-3 overflow-hidden transition-all duration-300" :class="sidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'">
+                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-black/20 transform hover:rotate-3 transition-transform">
+                        <span class="font-black text-xl text-primary-900">ن</span>
                     </div>
-                    <div class="w-12 h-12 bg-blue-100 p-0.5 rounded-2xl border-2 border-transparent group-hover:border-blue-900 transition-all duration-300">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=1e3a8a&color=fff" class="w-full h-full rounded-[14px] object-cover" />
+                    <div class="flex flex-col">
+                        <span class="text-lg font-black text-white tracking-wide whitespace-nowrap leading-none">نسبة</span>
+                        <span class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mt-1">لوحة الإدارة</span>
+                    </div>
+                </div>
+                <!-- Minimized Logo -->
+                <div :class="sidebarOpen ? 'hidden' : 'flex w-full justify-center'">
+                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg hover:rotate-3 transition-transform">
+                        <span class="font-black text-xl text-primary-900">ن</span>
                     </div>
                 </div>
             </div>
-        </header>
 
-        <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {{ $slot }}
-        </div>
-    </main>
+            <!-- Navigation Links -->
+            <nav class="flex-1 flex flex-col gap-2 px-3 py-6">
+                @foreach([
+                ['route' => 'admin.dashboard', 'title' => 'الرئيسية', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'],
+                ['route' => 'admin.leads', 'title' => 'إدارة العملاء', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
+                ['route' => 'admin.affiliates', 'title' => 'المسوقين', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
+                ['route' => 'admin.payouts', 'title' => 'طلبات السحب', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+                ['route' => 'admin.settings', 'title' => 'الإعدادات', 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z']
+                ] as $item)
+                <a href="{{ route($item['route']) }}"
+                    class="group flex items-center gap-3 px-3 py-3.5 rounded-xl transition-all duration-200 relative overflow-hidden {{ request()->routeIs($item['route']) ? 'bg-primary-700 text-white shadow-lg shadow-primary-900/50 from-primary-700 to-primary-800 bg-gradient-to-l' : 'text-primary-200 hover:bg-white/5 hover:text-white' }}">
+
+                    @if(request()->routeIs($item['route']))
+                    <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-yellow-400 rounded-l-full shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                    @endif
+
+                    <div class="shrink-0 transition-transform duration-300 group-hover:scale-110 {{ request()->routeIs($item['route']) ? 'text-yellow-400' : 'text-primary-400 group-hover:text-yellow-400' }}"
+                        :class="sidebarOpen ? '' : 'mx-auto'">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}" />
+                        </svg>
+                    </div>
+
+                    <span class="font-bold whitespace-nowrap transition-all duration-300 origin-right"
+                        :class="sidebarOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-90 w-0 hidden'">
+                        {{ $item['title'] }}
+                    </span>
+
+                    <div x-show="!sidebarOpen" class="hidden lg:group-hover:block absolute right-14 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl whitespace-nowrap z-[60] border border-white/10 animate-fade-in-right">
+                        {{ $item['title'] }}
+                        <div class="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-gray-900 rotate-45 border-t border-r border-white/10"></div>
+                    </div>
+                </a>
+                @endforeach
+            </nav>
+
+            <!-- User Section -->
+            <div class="mt-auto p-4 border-t border-white/10 bg-primary-950/30">
+                <div class="flex items-center gap-3 overflow-hidden" :class="sidebarOpen ? '' : 'justify-center'">
+                    <div class="relative shrink-0">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=EAB308&color=FFFFFF&bold=true"
+                            class="w-10 h-10 rounded-xl border-2 border-primary-600 shadow-md transform hover:scale-105 transition-transform">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-primary-900 rounded-full animate-pulse"></div>
+                    </div>
+
+                    <div class="flex flex-col overflow-hidden transition-all duration-300" :class="sidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'">
+                        <span class="text-sm font-bold text-white truncate">{{ auth()->user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button class="text-xs text-primary-300 hover:text-white hover:underline mt-0.5 text-right w-full">تسجيل الخروج</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapse Button (Bottom) -->
+            <button @click="sidebarOpen = !sidebarOpen" class="flex items-center justify-center p-2 bg-primary-950 border-t border-white/5 text-primary-400 hover:text-white hover:bg-primary-800 transition-colors">
+                <svg class="w-5 h-5 transition-transform duration-300" :class="sidebarOpen ? 'rotate-0' : 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+            </button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="transition-all duration-300 ease-out flex-1 flex flex-col w-full"
+            :class="sidebarOpen ? 'lg:mr-64' : 'lg:mr-20'">
+
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm/50 backdrop-blur-xl bg-white/90">
+                <div class="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button type="button" class="lg:hidden p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors" @click="mobileOpen = true">
+                            <span class="sr-only">فتح القائمة</span>
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
+                        </button>
+
+                        <div>
+                            <h1 class="text-2xl font-black text-gray-900 tracking-tight">{{ $header ?? 'لوحة القيادة' }}</h1>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <a href="{{ route('dashboard') }}" class="hidden md:inline-flex items-center justify-center gap-2 rounded-xl border border-primary-100 bg-primary-50 px-4 py-2.5 text-sm font-bold text-primary-700 hover:bg-primary-100 hover:border-primary-200 transition-all shadow-sm">
+                            <svg class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            عرض كمسوق
+                        </a>
+                        <div class="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
+                        <livewire:components.notifications-dropdown />
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content (Scrollable) -->
+            <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+                <div class="max-w-7xl mx-auto animate-fade-in-up">
+                    {{ $slot }}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <x-toast />
 </body>
 
 </html>

@@ -1,59 +1,31 @@
+/* ========================================
+   PROFESSIONAL CORPORATE ANIMATIONS
+   ======================================== */
 
 @layer utilities {
-    /* ===== CUSTOM ANIMATIONS ===== */
-
-    /* Floating animation (slow version for logo) */
-    @keyframes float-slow {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-8px); }
-    }
-
-    .animate-float-slow {
-        animation: float-slow 4s ease-in-out infinite;
-    }
-
-    /* Pulse slow for badges */
-    .animate-pulse-slow {
-        animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    /* Scale on hover */
-    .hover-scale {
-        transition: transform 0.3s ease;
+    /* ===== FADE ANIMATIONS ===== */
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     
-    .hover-scale:hover {
-        transform: scale(1.05);
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
     }
-
-    /* Bounce subtle */
-    @keyframes bounce-subtle {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
     }
-
-    .animate-bounce-subtle {
-        animation: bounce-subtle 2s ease-in-out infinite;
+    
+    .animate-fade-out {
+        animation: fadeOut 0.3s ease-out;
     }
-
-    /* Card entrance animation */
-    @keyframes scale-in {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
-    .animate-scale-in {
-        animation: scale-in 0.4s ease-out;
-    }
-
-    /* Slide up animation */
-    @keyframes slide-up {
+    
+    /* ===== SLIDE ANIMATIONS ===== */
+    
+    @keyframes slideUp {
         from {
             opacity: 0;
             transform: translateY(20px);
@@ -63,33 +35,250 @@
             transform: translateY(0);
         }
     }
-
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideLeft {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideRight {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
     .animate-slide-up {
-        animation: slide-up 0.5s ease-out;
+        animation: slideUp 0.4s ease-out;
     }
-
-    /* Background gradient animation */
-    @keyframes gradient-shift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
+    
+    .animate-slide-down {
+        animation: slideDown 0.4s ease-out;
     }
-
-    .animate-gradient {
-        background-size: 200% 200%;
-        animation: gradient-shift 8s ease infinite;
+    
+    .animate-slide-left {
+        animation: slideLeft 0.4s ease-out;
     }
-
-    /* Glow animation */
-    @keyframes glow-pulse {
+    
+    .animate-slide-right {
+        animation: slideRight 0.4s ease-out;
+    }
+    
+    /* ===== SCALE ANIMATIONS ===== */
+    
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes scaleOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
+    
+    .animate-scale-in {
+        animation: scaleIn 0.3s ease-out;
+    }
+    
+    .animate-scale-out {
+        animation: scaleOut 0.3s ease-out;
+    }
+    
+    /* ===== PROFESSIONAL HOVER EFFECTS ===== */
+    
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+    
+    .hover-scale {
+        transition: transform 0.2s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    
+    .hover-scale-sm {
+        transition: transform 0.2s ease;
+    }
+    
+    .hover-scale-sm:hover {
+        transform: scale(1.05);
+    }
+    
+    /* ===== SUBTLE PULSE ANIMATIONS ===== */
+    
+    @keyframes pulse-subtle {
         0%, 100% {
-            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            opacity: 1;
         }
         50% {
-            box-shadow: 0 0 40px rgba(6, 182, 212, 0.6), 0 0 60px rgba(6, 182, 212, 0.4);
+            opacity: 0.8;
         }
     }
-
-    .animate-glow-pulse {
-        animation: glow-pulse 3s ease-in-out infinite;
+    
+    .animate-pulse-subtle {
+        animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    /* ===== PROFESSIONAL SHIMMER ===== */
+    
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+    
+    .animate-shimmer {
+        animation: shimmer 2s infinite;
+        background: linear-gradient(
+            to right,
+            #f1f5f9 0%,
+            #e2e8f0 20%,
+            #f1f5f9 40%,
+            #f1f5f9 100%
+        );
+        background-size: 1000px 100%;
+    }
+    
+    /* ===== LOADING SPINNER ===== */
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    
+    .animate-spin-slow {
+        animation: spin 2s linear infinite;
+    }
+    
+    /* ===== STAGGER ANIMATIONS FOR LISTS ===== */
+    
+    .stagger-fade-in > * {
+        animation: fadeIn 0.5s ease-out backwards;
+    }
+    
+    .stagger-fade-in > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger-fade-in > *:nth-child(2) { animation-delay: 0.1s; }
+    .stagger-fade-in > *:nth-child(3) { animation-delay: 0.15s; }
+    .stagger-fade-in > *:nth-child(4) { animation-delay: 0.2s; }
+    .stagger-fade-in > *:nth-child(5) { animation-delay: 0.25s; }
+    .stagger-fade-in > *:nth-child(6) { animation-delay: 0.3s; }
+    .stagger-fade-in > *:nth-child(7) { animation-delay: 0.35s; }
+    .stagger-fade-in > *:nth-child(8) { animation-delay: 0.4s; }
+    
+    .stagger-slide-up > * {
+        animation: slideUp 0.5s ease-out backwards;
+    }
+    
+    .stagger-slide-up > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger-slide-up > *:nth-child(2) { animation-delay: 0.1s; }
+    .stagger-slide-up > *:nth-child(3) { animation-delay: 0.15s; }
+    .stagger-slide-up > *:nth-child(4) { animation-delay: 0.2s; }
+    .stagger-slide-up > *:nth-child(5) { animation-delay: 0.25s; }
+    .stagger-slide-up > *:nth-child(6) { animation-delay: 0.3s; }
+    .stagger-slide-up > *:nth-child(7) { animation-delay: 0.35s; }
+    .stagger-slide-up > *:nth-child(8) { animation-delay: 0.4s; }
+    
+    /* ===== PROFESSIONAL PROGRESS BAR ===== */
+    
+    @keyframes progress {
+        0% {
+            transform: translateX(-100%);
+        }
+        100% {
+            transform: translateX(100%);
+        }
+    }
+    
+    .animate-progress {
+        animation: progress 1.5s ease-in-out infinite;
+    }
+    
+    /* ===== NOTIFICATION ANIMATIONS ===== */
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+    
+    .animate-notification-in {
+        animation: slideInRight 0.3s ease-out;
+    }
+    
+    .animate-notification-out {
+        animation: slideOutRight 0.3s ease-out;
+    }
+    
+    /* ===== SMOOTH TRANSITIONS ===== */
+    
+    .transition-smooth {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .transition-smooth-slow {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 }

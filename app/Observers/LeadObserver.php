@@ -14,6 +14,18 @@ class LeadObserver
     {
         $this->whatsapp = $whatsapp;
     }
+
+    /**
+     * Handle the Lead "created" event.
+     */
+    public function created(Lead $lead): void
+    {
+        // Notify all admin users about new lead
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\NewLeadNotification($lead));
+        }
+    }
     /**
      * Handle the Lead "updated" event.
      */

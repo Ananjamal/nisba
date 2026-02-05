@@ -58,69 +58,7 @@ new class extends Component
                 <!-- Settings Dropdown -->
                 <div class="hidden sm:flex sm:items-center gap-6">
                     <!-- Notifications Dropdown -->
-                    <x-dropdown align="right" width="96" contentClasses="bg-white shadow-2xl border border-deep-blue-100 rounded-2xl">
-                        <x-slot name="trigger">
-                            <button class="relative p-3 text-deep-blue-400 hover:text-cyber-600 hover:bg-cyber-50 rounded-xl transition-all duration-300 group">
-                                <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-accent-500 rounded-full border-2 border-white shadow-glow-rose animate-pulse-glow"></span>
-                                <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                                </svg>
-                            </button>
-                        </x-slot>
-
-                        <x-slot name="content">
-                            <div class="px-5 py-4 border-b border-deep-blue-50">
-                                <p class="text-sm font-bold text-deep-blue-900">{{ __('الإشعارات') }}</p>
-                                <p class="text-xs text-deep-blue-400 mt-1">{{ __('لديك 3 إشعارات جديدة') }}</p>
-                            </div>
-
-                            <div class="max-h-96 overflow-y-auto">
-                                <!-- Notification Item -->
-                                <a href="#" class="flex items-start gap-4 px-5 py-4 hover:bg-cyber-50 transition-colors duration-200 border-b border-deep-blue-50/50">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-electric-500 to-electric-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-soft">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-deep-blue-900">{{ __('تم قبول عميل جديد') }}</p>
-                                        <p class="text-xs text-deep-blue-500 mt-1">{{ __('تم إضافة العميل أحمد محمد بنجاح') }}</p>
-                                        <span class="text-[10px] text-deep-blue-400 mt-2 block">{{ __('منذ 5 دقائق') }}</span>
-                                    </div>
-                                </a>
-
-                                <a href="#" class="flex items-start gap-4 px-5 py-4 hover:bg-cyber-50 transition-colors duration-200 border-b border-deep-blue-50/50">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-amber-glow-500 to-amber-glow-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-soft">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-deep-blue-900">{{ __('عمولة جديدة') }}</p>
-                                        <p class="text-xs text-deep-blue-500 mt-1">{{ __('حصلت على عمولة 500 ريال') }}</p>
-                                        <span class="text-[10px] text-deep-blue-400 mt-2 block">{{ __('منذ ساعة') }}</span>
-                                    </div>
-                                </a>
-
-                                <a href="#" class="flex items-start gap-4 px-5 py-4 hover:bg-cyber-50 transition-colors duration-200">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-cyber-500 to-cyber-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-soft">
-                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-deep-blue-900">{{ __('تحديث النظام') }}</p>
-                                        <p class="text-xs text-deep-blue-500 mt-1">{{ __('تم تحديث لوحة التحكم لإصدار 2.0') }}</p>
-                                        <span class="text-[10px] text-deep-blue-400 mt-2 block">{{ __('منذ يومين') }}</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="px-5 py-3 bg-deep-blue-50/30 border-t border-deep-blue-100">
-                                <a href="#" class="text-xs font-bold text-cyber-600 hover:text-cyber-700 transition-colors">{{ __('عرض جميع الإشعارات →') }}</a>
-                            </div>
-                        </x-slot>
-                    </x-dropdown>
+                    <livewire:components.notifications-dropdown />
 
                     <div class="h-6 w-px bg-deep-blue-200"></div>
 

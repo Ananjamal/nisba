@@ -6,71 +6,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'نسبة') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <style>
-        /* Animated Grid Background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: -1;
-            animation: gridMove 20s linear infinite;
-        }
-
-        @keyframes gridMove {
-            0% {
-                background-position: 0 0;
-            }
-
-            100% {
-                background-position: 50px 50px;
-            }
-        }
-    </style>
 </head>
 
-<body class="font-inter antialiased text-deep-blue-900 selection:bg-cyber-100 selection:text-cyber-900 overflow-x-hidden">
-    <div class="min-h-screen relative">
-        <!-- Modern Background Elements -->
-        <div class="fixed top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-cyber-100/40 via-cyber-50/20 to-transparent rounded-full blur-3xl -z-10 opacity-60 animate-float-slow"></div>
-        <div class="fixed bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-neon-purple-100/30 via-neon-purple-50/15 to-transparent rounded-full blur-3xl -z-10 opacity-50 animate-float"></div>
-        <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/50 via-transparent to-transparent -z-10"></div>
+<body class="font-cairo bg-main">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="page-header sticky top-0 z-40 bg-white shadow-sm border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <!-- Logo & Navigation -->
+                <div class="flex items-center gap-8">
+                    <div class="logo text-2xl font-black text-primary-900">
+                        نسبة
+                    </div>
 
-        <livewire:layout.navigation />
+                    <nav class="hidden md:flex items-center gap-6">
+                        <a href="{{ route('dashboard') }}" class="text-sm font-semibold {{ request()->routeIs('dashboard') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">لوحة القيادة</a>
+                        <a href="{{ route('affiliate.team') }}" class="text-sm font-semibold {{ request()->routeIs('affiliate.team') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">فريقي</a>
+                        @if(auth()->user()->role === 'admin')
+                        <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold {{ request()->routeIs('admin.dashboard') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">لوحة الإدارة</a>
+                        @endif
+                    </nav>
+                </div>
 
-        <!-- Page Heading -->
-        @if (isset($header))
-        <header class="pt-8 pb-4">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {{ $header }}
+                <!-- User Info & Actions -->
+                <div class="flex items-center gap-4">
+                    <!-- Notifications -->
+                    <livewire:components.notifications-dropdown />
+
+                    <!-- User Dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center gap-3 focus:outline-none hover:bg-gray-50 p-2 rounded-lg transition">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-semibold text-primary-900">{{ auth()->user()->name }}</p>
+                                <p class="text-[10px] text-secondary">مسوق بالعمولة</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold border-2 border-white shadow-sm">
+                                {{ mb_substr(auth()->user()->name, 0, 1) }}
+                            </div>
+                            <svg class="w-4 h-4 text-gray-400" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div x-show="open"
+                            @click.away="open = false"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 origin-top-left"
+                            style="display: none;">
+
+                            <div class="px-4 py-3 border-b border-gray-100">
+                                <p class="text-sm font-bold text-gray-900">{{ auth()->user()->name }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                            </div>
+
+                            <div class="py-1">
+                                <a href="{{ route('profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition">
+                                    الملف الشخصي
+                                </a>
+                                <a href="{{ route('affiliate.team') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition">
+                                    فريقي
+                                </a>
+                                @if(auth()->user()->role === 'admin' || auth()->user()->email === 'admin@nisba.com')
+                                <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition">
+                                    لوحة الإدارة
+                                </a>
+                                @endif
+
+                            </div>
+
+                            <div class="border-t border-gray-100 py-1">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="block w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
+                                        تسجيل الخروج
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
-        @endif
 
         <!-- Page Content -->
-        <main class="pb-24">
+        <main class="py-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {{ $slot }}
             </div>
         </main>
     </div>
 
+    <!-- Toast Notifications -->
+    <x-toast />
 </body>
 
 </html>
