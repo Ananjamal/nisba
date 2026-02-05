@@ -217,132 +217,134 @@ new class extends Component {
     </div>
 
     <!-- Modal Dialog -->
-    <div x-show="$wire.showModal"
-        x-transition:enter="transition ease-out duration-500"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        class="fixed inset-0 z-[70] overflow-y-auto px-4" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen">
-            <div @click="$wire.set('showModal', false)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"></div>
+    <template x-teleport="body">
+        <div x-show="$wire.showModal"
+            x-transition:enter="transition ease-out duration-500"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            class="fixed inset-0 overflow-y-auto px-4" style="display: none; z-index: 1000 !important;">
+            <div class="flex items-center justify-center min-h-screen">
+                <div @click="$wire.set('showModal', false)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"></div>
 
-            <div class="bg-white rounded-[3.5rem] shadow-premium relative w-full max-w-4xl overflow-hidden border border-white"
-                x-transition:enter="transition ease-out duration-500"
-                x-transition:enter-start="opacity-0 translate-y-32 scale-90"
-                x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+                <div class="bg-white rounded-[3.5rem] shadow-premium relative w-full max-w-4xl overflow-hidden border border-white"
+                    x-transition:enter="transition ease-out duration-500"
+                    x-transition:enter-start="opacity-0 translate-y-32 scale-90"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100">
 
-                <!-- Decorative Backgrounds -->
-                <div class="absolute top-0 right-0 w-64 h-64 bg-primary-100 rounded-full blur-[100px] -mr-32 -mt-32 opacity-30"></div>
-                <div class="absolute bottom-0 left-0 w-80 h-80 bg-indigo-100 rounded-full blur-[120px] -ml-40 -mb-40 opacity-30"></div>
+                    <!-- Decorative Backgrounds -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary-100 rounded-full blur-[100px] -mr-32 -mt-32 opacity-30"></div>
+                    <div class="absolute bottom-0 left-0 w-80 h-80 bg-indigo-100 rounded-full blur-[120px] -ml-40 -mb-40 opacity-30"></div>
 
-                <div class="relative flex flex-col h-[85vh]">
-                    <!-- Modal Header -->
-                    <div class="p-12 pb-8 flex items-center justify-between border-b border-slate-50">
-                        <div>
-                            <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ __('إضافة عميل محتمل جديد') }}</h3>
-                            <p class="text-xs text-slate-400 font-bold mt-2 uppercase tracking-[0.2em]">{{ __('أدخل تفاصيل العميل بعناية لضمان متابعة دقيقة') }}</p>
+                    <div class="relative flex flex-col h-[85vh]">
+                        <!-- Modal Header -->
+                        <div class="p-12 pb-8 flex items-center justify-between border-b border-slate-50">
+                            <div>
+                                <h3 class="text-3xl font-black text-slate-900 tracking-tighter">{{ __('إضافة عميل محتمل جديد') }}</h3>
+                                <p class="text-xs text-slate-400 font-bold mt-2 uppercase tracking-[0.2em]">{{ __('أدخل تفاصيل العميل بعناية لضمان متابعة دقيقة') }}</p>
+                            </div>
+                            <button @click="$wire.set('showModal', false)" class="w-14 h-14 flex items-center justify-center bg-slate-50 rounded-2xl text-slate-400 hover:text-slate-900 transition-all hover:rotate-90 duration-500">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
                         </div>
-                        <button @click="$wire.set('showModal', false)" class="w-14 h-14 flex items-center justify-center bg-slate-50 rounded-2xl text-slate-400 hover:text-slate-900 transition-all hover:rotate-90 duration-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
 
-                    <form wire:submit.prevent="addLead" class="flex-1 overflow-y-auto p-12 space-y-12">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div class="md:col-span-2">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('الاسم الكامل للعميل') }}</label>
-                                <input type="text" wire:model="client_name" placeholder="أدخل اسم العميل كما هو..."
-                                    class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
-                                @error('client_name') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="space-y-4">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('اسم الشركة / المؤسسة') }}</label>
-                                <input type="text" wire:model="company_name" placeholder="اختياري..."
-                                    class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
-                            </div>
-
-                            <div class="space-y-4">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('رقم جوال العميل') }}</label>
-                                <input type="text" wire:model="client_phone" placeholder="05xxxxxxxx" dir="ltr"
-                                    class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono placeholder:text-slate-300 tracking-wider">
-                                @error('client_phone') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('المدينة أو المنطقة') }}</label>
-                                <div class="relative">
-                                    <select wire:model="city" class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all appearance-none cursor-pointer">
-                                        <option value="">{{ __('اختر المدينة...') }}</option>
-                                        <option value="الرياض">الرياض</option>
-                                        <option value="جدة">جدة</option>
-                                        <option value="الدمام">الدمام</option>
-                                        <option value="مكة">مكة المكرمة</option>
-                                        <option value="المدينة">المدينة المنورة</option>
-                                        <option value="أخرى">أخرى</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 left-8 flex items-center pointer-events-none text-slate-300">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
+                        <form wire:submit.prevent="addLead" class="flex-1 overflow-y-auto p-12 space-y-12">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('الاسم الكامل للعميل') }}</label>
+                                    <input type="text" wire:model="client_name" placeholder="أدخل اسم العميل كما هو..."
+                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
+                                    @error('client_name') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
                                 </div>
-                                @error('city') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
-                            </div>
 
-                            <div class="md:col-span-2">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('وصف الاحتياجات والمتطلبات') }}</label>
-                                <textarea wire:model="needs" rows="3" placeholder="ما الذي يبحث عنه العميل بالتحديد؟"
-                                    class="w-full px-8 py-6 bg-slate-50 border-none rounded-[1.75rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300 resize-none leading-relaxed"></textarea>
-                            </div>
-                        </div>
+                                <div class="space-y-4">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('اسم الشركة / المؤسسة') }}</label>
+                                    <input type="text" wire:model="company_name" placeholder="اختياري..."
+                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300">
+                                </div>
 
-                        <div class="space-y-8">
-                            <div class="flex items-center gap-4 px-2">
-                                <div class="w-1.5 h-6 bg-primary-500 rounded-full"></div>
-                                <label class="block text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">{{ __('الأنظمة والخدمات المقترحة') }}</label>
-                            </div>
+                                <div class="space-y-4">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('رقم جوال العميل') }}</label>
+                                    <input type="number" wire:model="client_phone" placeholder="05xxxxxxxx" dir="ltr"
+                                        class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono placeholder:text-slate-300 tracking-wider">
+                                    @error('client_phone') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
+                                </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                @foreach($available_systems as $system)
-                                <button type="button"
-                                    wire:click="toggleSystem('{{ $system['id'] }}')"
-                                    class="group relative flex flex-col items-center justify-center p-8 border border-slate-100 rounded-[2.5rem] transition-all duration-500 {{ in_array($system['id'], $recommended_systems) ? 'bg-primary-50 border-primary-200 shadow-xl shadow-primary-500/10' : 'bg-white hover:border-primary-100 hover:bg-slate-50/50 hover:-translate-y-1' }}">
-                                    <div class="relative h-14 mb-5 flex items-center justify-center">
-                                        <img src="{{ $system['logo'] }}" class="h-10 transition-all duration-700 {{ in_array($system['id'], $recommended_systems) ? 'scale-125' : 'grayscale opacity-20 group-hover:grayscale-0 group-hover:opacity-100' }}" alt="{{ $system['name'] }}">
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('المدينة أو المنطقة') }}</label>
+                                    <div class="relative">
+                                        <select wire:model="city" class="w-full px-8 py-5 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all appearance-none cursor-pointer">
+                                            <option value="">{{ __('اختر المدينة...') }}</option>
+                                            <option value="الرياض">الرياض</option>
+                                            <option value="جدة">جدة</option>
+                                            <option value="الدمام">الدمام</option>
+                                            <option value="مكة">مكة المكرمة</option>
+                                            <option value="المدينة">المدينة المنورة</option>
+                                            <option value="أخرى">أخرى</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 left-8 flex items-center pointer-events-none text-slate-300">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
                                     </div>
-                                    <span class="text-[10px] font-black tracking-[0.2em] uppercase transition-colors duration-500 {{ in_array($system['id'], $recommended_systems) ? 'text-primary-700' : 'text-slate-400 group-hover:text-slate-600' }}">{{ $system['name'] }}</span>
+                                    @error('city') <span class="text-rose-500 text-[10px] font-black mt-3 block px-4">{{ $message }}</span> @enderror
+                                </div>
 
-                                    @if(in_array($system['id'], $recommended_systems))
-                                    <div class="absolute top-4 right-4 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-primary-500/40 animate-bounce-subtle">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    @endif
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-2">{{ __('وصف الاحتياجات والمتطلبات') }}</label>
+                                    <textarea wire:model="needs" rows="3" placeholder="ما الذي يبحث عنه العميل بالتحديد؟"
+                                        class="w-full px-8 py-6 bg-slate-50 border-none rounded-[1.75rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300 resize-none leading-relaxed"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="space-y-8">
+                                <div class="flex items-center gap-4 px-2">
+                                    <div class="w-1.5 h-6 bg-primary-500 rounded-full"></div>
+                                    <label class="block text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">{{ __('الأنظمة والخدمات المقترحة') }}</label>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    @foreach($available_systems as $system)
+                                    <button type="button"
+                                        wire:click="toggleSystem('{{ $system['id'] }}')"
+                                        class="group relative flex flex-col items-center justify-center p-8 border border-slate-100 rounded-[2.5rem] transition-all duration-500 {{ in_array($system['id'], $recommended_systems) ? 'bg-primary-50 border-primary-200 shadow-xl shadow-primary-500/10' : 'bg-white hover:border-primary-100 hover:bg-slate-50/50 hover:-translate-y-1' }}">
+                                        <div class="relative h-14 mb-5 flex items-center justify-center">
+                                            <img src="{{ $system['logo'] }}" class="h-10 transition-all duration-700 {{ in_array($system['id'], $recommended_systems) ? 'scale-125' : 'grayscale opacity-20 group-hover:grayscale-0 group-hover:opacity-100' }}" alt="{{ $system['name'] }}">
+                                        </div>
+                                        <span class="text-[10px] font-black tracking-[0.2em] uppercase transition-colors duration-500 {{ in_array($system['id'], $recommended_systems) ? 'text-primary-700' : 'text-slate-400 group-hover:text-slate-600' }}">{{ $system['name'] }}</span>
+
+                                        @if(in_array($system['id'], $recommended_systems))
+                                        <div class="absolute top-4 right-4 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-primary-500/40 animate-bounce-subtle">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        @endif
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Modal Footer -->
+                        <div class="p-10 px-12 bg-slate-50/50 backdrop-blur-md border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest max-w-xs text-center sm:text-right">
+                                {{ __('يرجى ملاحظة أن إضافة العميل تعني الموافقة على شروط سياسة الخصوصية وحماية البيانات.') }}
+                            </p>
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <button type="button" @click="$wire.set('showModal', false)" class="flex-1 sm:flex-none px-10 py-5 rounded-2xl text-xs font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">
+                                    {{ __('إلغاء') }}
                                 </button>
-                                @endforeach
+                                <button type="button" wire:click="addLead" class="flex-1 sm:flex-none btn-luxury !px-12 !py-5 !rounded-2xl !text-xs shadow-2xl shadow-primary-600/20">
+                                    {{ __('حفظ وإرسال الملف') }}
+                                </button>
                             </div>
-                        </div>
-                    </form>
-
-                    <!-- Modal Footer -->
-                    <div class="p-10 px-12 bg-slate-50/50 backdrop-blur-md border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest max-w-xs text-center sm:text-right">
-                            {{ __('يرجى ملاحظة أن إضافة العميل تعني الموافقة على شروط سياسة الخصوصية وحماية البيانات.') }}
-                        </p>
-                        <div class="flex items-center gap-4 w-full sm:w-auto">
-                            <button type="button" @click="$wire.set('showModal', false)" class="flex-1 sm:flex-none px-10 py-5 rounded-2xl text-xs font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">
-                                {{ __('إلغاء') }}
-                            </button>
-                            <button type="button" wire:click="addLead" class="flex-1 sm:flex-none btn-luxury !px-12 !py-5 !rounded-2xl !text-xs shadow-2xl shadow-primary-600/20">
-                                {{ __('حفظ وإرسال الملف') }}
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 </div>

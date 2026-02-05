@@ -71,43 +71,6 @@
         </main>
     </div>
 
-    <!-- Withdrawal Modal (Global) - Listens to wallet component -->
-    @if(auth()->check() && auth()->user()->role === 'affiliate')
-    <div x-data="{ showModal: false }"
-        @show-withdrawal-modal.window="showModal = true"
-        x-show="showModal"
-        x-transition:enter="transition ease-out duration-500"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        class="fixed inset-0 z-[9999] overflow-y-auto px-4"
-        style="display: none;">
-        <div class="flex items-center justify-center min-h-screen py-12">
-            <div @click="showModal = false" class="fixed inset-0 bg-deep-blue-900/80 backdrop-blur-lg transition-opacity"></div>
-
-            <div class="bg-white rounded-[3rem] shadow-2xl relative w-full max-w-2xl overflow-hidden border border-cyber-200"
-                x-transition:enter="transition ease-out duration-500"
-                x-transition:enter-start="opacity-0 translate-y-20 scale-90"
-                x-transition:enter-end="opacity-100 translate-y-0 scale-100">
-
-                <div class="p-12">
-                    <div class="flex items-center justify-between mb-10">
-                        <div>
-                            <h3 class="text-3xl font-black text-deep-blue-900 tracking-tighter">{{ __('تأكيد طلب السحب') }}</h3>
-                            <p class="text-sm text-deep-blue-400 font-bold mt-2 uppercase tracking-wider">{{ __('سيتم تحويل المبلغ لحسابك البنكي') }}</p>
-                        </div>
-                        <button @click="showModal = false" class="w-12 h-12 flex items-center justify-center bg-deep-blue-50 rounded-2xl text-deep-blue-400 hover:text-deep-blue-900 hover:bg-cyber-100 transition-all">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <livewire:affiliate.wallet-modal />
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 </body>
 
 </html>

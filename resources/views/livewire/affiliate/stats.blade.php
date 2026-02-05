@@ -22,7 +22,7 @@ new class extends Component {
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <!-- Total Clicks -->
     <div class="stat-modern group">
-        <div class="flex justify-between items-start mb-8 relative z-10">
+        <div class="flex justify-between items-start mb-8">
             <span class="stat-label-modern">{{ __('إجمالي النقرات') }}</span>
             <div class="stat-icon bg-gradient-to-br from-cyber-600 to-cyber-500">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@ new class extends Component {
 
     <!-- Active Clients -->
     <div class="stat-modern group">
-        <div class="flex justify-between items-start mb-8 relative z-10">
+        <div class="flex justify-between items-start mb-8">
             <span class="stat-label-modern">{{ __('العملاء المشتركين') }}</span>
             <div class="stat-icon bg-gradient-to-br from-neon-purple-600 to-neon-purple-500">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@ new class extends Component {
 
     <!-- Total Contracts -->
     <div class="stat-modern group">
-        <div class="flex justify-between items-start mb-8 relative z-10">
+        <div class="flex justify-between items-start mb-8">
             <span class="stat-label-modern">{{ __('إجمالي قيمة العقود') }}</span>
             <div class="stat-icon bg-gradient-to-br from-amber-glow-500 to-amber-glow-400">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

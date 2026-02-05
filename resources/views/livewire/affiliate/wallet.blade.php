@@ -46,7 +46,7 @@ new class extends Component {
     }
 }; ?>
 
-<div class="space-y-8">
+<div class="space-y-8" x-data="{ show: @entangle('showRequestModal') }" @payout-requested.window="show = false">
     <!-- Balance Card -->
     <div class="space-y-6">
         <div class="flex items-center justify-between">
@@ -73,7 +73,7 @@ new class extends Component {
 
                     <div class="shrink-0 w-full md:w-auto">
                         <button
-                            @click="$dispatch('show-withdrawal-modal')"
+                            @click="show = true"
                             @if(($stats->pending_commissions ?? 0) <= 0) disabled @endif
                                 class="group relative overflow-hidden bg-white text-cyber-600 px-10 py-5 rounded-[1.75rem] font-black text-sm transition-all duration-500 hover:shadow-2xl hover:shadow-white/20 hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                                 <div class="absolute inset-0 bg-cyber-50 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
@@ -166,4 +166,92 @@ new class extends Component {
             </div>
         </div>
     </div>
+
+    <!-- Withdrawal Modal -->
+    <template x-teleport="body">
+        <div x-show="show"
+            x-transition:enter="transition ease-out duration-500"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            class="fixed inset-0 overflow-y-auto px-4" style="display: none; z-index: 1000 !important;">
+
+            <div class="flex items-center justify-center min-h-screen">
+                <div @click="show = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"></div>
+
+                <div x-show="show"
+                    x-transition:enter="transition ease-out duration-500 delay-100"
+                    x-transition:enter-start="opacity-0 translate-y-10 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                    class="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
+
+                    <!-- Modal Header -->
+                    <div class="bg-slate-50 px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-2xl font-black text-slate-900">{{ __('طلب سحب عمولات') }}</h3>
+                            <p class="text-sm text-slate-500 font-bold mt-1">{{ __('سيتم تحويل المبلغ المتاح إلى حسابك البنكي') }}</p>
+                        </div>
+                        <button @click="show = false" class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all duration-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="p-8">
+                        <div class="mb-8 text-center bg-emerald-50 rounded-[2rem] p-6 border border-emerald-100">
+                            <span class="text-xs font-black text-emerald-600 uppercase tracking-widest block mb-2">{{ __('الرصيد المتاح للسحب') }}</span>
+                            <div class="flex items-baseline justify-center gap-2">
+                                <span class="text-4xl font-black text-emerald-600 tracking-tighter">{{ number_format($stats->pending_commissions ?? 0, 2) }}</span>
+                                <span class="text-sm font-black text-emerald-600/60 uppercase">ريال</span>
+                            </div>
+                        </div>
+
+                        <form wire:submit="requestPayout" class="space-y-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-2">{{ __('اسم صاحب الحساب') }}</label>
+                                    <input type="text" wire:model="account_holder_name"
+                                        class="w-full px-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-cyber-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                                        placeholder="{{ __('الاسم كما هو في البنك') }}">
+                                    @error('account_holder_name') <span class="text-rose-500 text-[10px] font-black mt-2 block px-2">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-2">{{ __('اسم البنك') }}</label>
+                                    <input type="text" wire:model="bank_name"
+                                        class="w-full px-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-cyber-500/10 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                                        placeholder="{{ __('مثال: مصرف الراجحي') }}">
+                                    @error('bank_name') <span class="text-rose-500 text-[10px] font-black mt-2 block px-2">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-2">{{ __('رقم الآيبان (IBAN)') }}</label>
+                                    <input type="text" wire:model="iban"
+                                        class="w-full px-6 py-4 bg-slate-50 border-none rounded-[1.5rem] text-sm font-black text-slate-900 focus:ring-4 focus:ring-cyber-500/10 focus:bg-white outline-none transition-all font-mono placeholder:text-slate-300"
+                                        placeholder="SA...">
+                                    @error('iban') <span class="text-rose-500 text-[10px] font-black mt-2 block px-2">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-4 pt-4">
+                                <button type="button" @click="show = false" class="flex-1 py-4 bg-white border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all">
+                                    {{ __('إلغاء') }}
+                                </button>
+                                <button type="submit" class="flex-[2] py-4 bg-cyber-600 hover:bg-cyber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-cyber-600/20 hover:shadow-cyber-600/40 transition-all transform hover:-translate-y-1 px-8">
+                                    <span wire:loading.remove>{{ __('تأكيد وطلب السحب') }}</span>
+                                    <span wire:loading class="flex items-center justify-center gap-2">
+                                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        {{ __('جاري المعالجة...') }}
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>

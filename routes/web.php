@@ -50,7 +50,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(function () {
     Volt::route('/', 'admin.dashboard')->name('admin.dashboard');
     Volt::route('/leads', 'admin.leads')->name('admin.leads');
+    Volt::route('/affiliates', 'admin.affiliates')->name('admin.affiliates');
     Volt::route('/payouts', 'admin.payouts')->name('admin.payouts');
+    Volt::route('/settings', 'admin.settings')->name('admin.settings');
 });
 
 require __DIR__ . '/auth.php';

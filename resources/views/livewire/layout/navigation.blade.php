@@ -40,6 +40,11 @@ new class extends Component
                             {{ __('لوحة التحكم') }}
                         </a>
 
+                        <a href="{{ route('affiliate.team') }}" wire:navigate
+                            class="{{ request()->routeIs('affiliate.team') ? 'nav-link-active' : 'nav-link' }}">
+                            {{ __('فريقي') }}
+                        </a>
+
                         @if(auth()->user()->isAdmin())
                         <a href="{{ route('admin.dashboard') }}" wire:navigate
                             class="btn-glow !px-5 !py-2.5 !rounded-xl !text-sm group">
