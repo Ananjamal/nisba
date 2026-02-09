@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'نسبة') }}</title>
+    <title>{{ config('app.name', 'حليف') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,16 +24,14 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <!-- Logo & Navigation -->
                 <div class="flex items-center gap-8">
-                    <div class="logo text-2xl font-black text-primary-900">
-                        نسبة
-                    </div>
+                    <x-application-logo class="text-primary-900" />
 
                     <nav class="hidden md:flex items-center gap-6">
                         <a href="{{ route('dashboard') }}" class="text-sm font-semibold {{ request()->routeIs('dashboard') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">لوحة القيادة</a>
                         <a href="{{ route('affiliate.team') }}" class="text-sm font-semibold {{ request()->routeIs('affiliate.team') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">فريقي</a>
-                        @if(auth()->user()->role === 'admin')
+                        @role('admin')
                         <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold {{ request()->routeIs('admin.dashboard') ? 'text-primary-600' : 'text-secondary hover:text-primary-900' }} transition">لوحة الإدارة</a>
-                        @endif
+                        @endrole
                     </nav>
                 </div>
 
@@ -81,11 +79,11 @@
                                 <a href="{{ route('affiliate.team') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition">
                                     فريقي
                                 </a>
-                                @if(auth()->user()->role === 'admin' || auth()->user()->email === 'admin@nisba.com')
+                                @role('admin')
                                 <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition">
                                     لوحة الإدارة
                                 </a>
-                                @endif
+                                @endrole
 
                             </div>
 

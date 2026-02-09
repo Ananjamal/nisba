@@ -15,14 +15,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Setup Roles and Permissions first
+        $this->call(RolesAndPermissionsSeeder::class);
+
         // Admin
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@nisba.me',
             'password' => bcrypt('password'),
             'role' => 'admin',
             'status' => 'active',
         ]);
+        $admin->assignRole('admin');
 
         // Affiliate
         $user = User::factory()->create([
@@ -33,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
             'phone' => '0599123123',
         ]);
+        $user->assignRole('affiliate');
 
         $user->stats()->create([
             'clicks_count' => 120,

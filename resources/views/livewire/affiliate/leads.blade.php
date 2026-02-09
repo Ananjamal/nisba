@@ -205,7 +205,7 @@ new class extends Component {
                         @if($lead->commission_type === 'fixed')
                         <span class="font-bold text-green-600">{{ number_format($lead->commission_rate) }} ريال</span>
                         @elseif($lead->commission_rate)
-                        <span class="font-bold text-blue-600">{{ $lead->commission_rate }}%</span>
+                        <span class="font-bold text-primary-600">{{ $lead->commission_rate }}%</span>
                         @else
                         -
                         @endif
@@ -217,7 +217,7 @@ new class extends Component {
                         $statusConfig = [
                         'under_review' => ['class' => 'badge-pending', 'label' => 'قيد المراجعة'],
                         'sold' => ['class' => 'badge-active', 'label' => 'مباع'],
-                        'contacting' => ['class' => 'badge-info bg-blue-100 text-blue-800', 'label' => 'جاري التواصل'],
+                        'contacting' => ['class' => 'badge-info bg-primary-100 text-primary-800', 'label' => 'جاري التواصل'],
                         'cancelled' => ['class' => 'badge-rejected', 'label' => 'ملغي']
                         ];
                         $config = $statusConfig[$lead->status] ?? ['class' => 'badge-pending', 'label' => $lead->status];
@@ -264,7 +264,7 @@ new class extends Component {
                             <!-- Professional Delete Confirmation Modal -->
                             <template x-teleport="body">
                                 <div x-show="showDeleteModal" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
-                                    <div class="fixed inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
+                                    <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
 
                                     <div class="flex min-h-full items-center justify-center p-4">
                                         <div class="relative w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all text-center">
@@ -274,8 +274,8 @@ new class extends Component {
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                     </svg>
                                                 </div>
-                                                <h3 class="text-2xl font-black text-blue-900 mb-2">هل أنت متأكد؟</h3>
-                                                <p class="text-blue-500 font-medium">سيتم حذف بيانات العميل نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
+                                                <h3 class="text-2xl font-black text-primary-900 mb-2">هل أنت متأكد؟</h3>
+                                                <p class="text-primary-500 font-medium">سيتم حذف بيانات العميل نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
                                             </div>
 
                                             <div class="flex flex-col gap-3">
@@ -286,7 +286,7 @@ new class extends Component {
                                                 </button>
                                                 <button
                                                     @click="showDeleteModal = false"
-                                                    class="w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-100 transition-all font-bold">
+                                                    class="w-full py-4 bg-primary-50 text-primary-600 rounded-2xl font-bold hover:bg-primary-100 transition-all font-bold">
                                                     إلغاء
                                                 </button>
                                             </div>
@@ -402,7 +402,7 @@ new class extends Component {
                                 @foreach($available_systems as $system)
                                 <button type="button"
                                     wire:click="toggleSystem('{{ $system['id'] }}')"
-                                    class="relative group flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-blue-50/50' : 'border-gray-100 hover:border-blue-200 bg-white' }}">
+                                    class="relative group flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-primary-50/50' : 'border-gray-100 hover:border-primary-200 bg-white' }}">
 
                                     <div class="h-12 flex items-center justify-center mb-3 transition-transform group-hover:scale-105">
                                         <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all">

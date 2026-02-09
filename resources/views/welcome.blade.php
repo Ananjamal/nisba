@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Nisba') }} - منصة التسويق بالعمولة</title>
+    <title>{{ config('app.name', 'حليف') }} - منصة التسويق بالعمولة</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,12 +21,7 @@
     <nav class="fixed w-full z-50 bg-primary-900 border-b border-white/10 shadow-lg py-4">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             <!-- Logo -->
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                    <span class="font-black text-xl text-white">%</span>
-                </div>
-                <span class="text-2xl font-black tracking-wide text-white">نسبة</span>
-            </div>
+            <x-application-logo class="text-white" />
 
             <!-- Mobile Menu Button -->
             <div class="md:hidden">
@@ -48,11 +43,11 @@
             <div class="flex items-center space-x-4 rtl:space-x-reverse">
                 @auth
                 @if(auth()->user()->role === 'admin')
-                <a href="{{ route('admin.dashboard') }}" class="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-sm">{{ __('لوحة الإدارة') }}</a>
+                <a href="{{ route('admin.dashboard') }}" class="bg-primary-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-600 transition shadow-sm">{{ __('لوحة الإدارة') }}</a>
                 @endif
                 @else
                 <a href="{{ route('login') }}" class="bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-500 transition shadow-sm">{{ __('تسجيل الدخول') }}</a>
-                <a href="{{ route('register') }}" class="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-sm">{{ __('انضم كشريك') }}</a>
+                <a href="{{ route('register') }}" class="bg-primary-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-600 transition shadow-sm">{{ __('انضم كشريك') }}</a>
                 @endauth
             </div>
         </div>
@@ -91,7 +86,7 @@
 
             <!-- Subheadline -->
             <p class="text-lg sm:text-xl md:text-2xl text-blue-100/80 mb-12 max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up delay-200">
-                انضم لنخبة المسوقين في "نسبة". نربطك بأكبر العلامات التجارية لتبني دخلاً مستداماً بأدوات احترافية وعمولات مجزية.
+                انضم لنخبة المسوقين في "{{ config('app.name', 'حليف') }}". نربطك بأكبر العلامات التجارية لتبني دخلاً مستداماً بأدوات احترافية وعمولات مجزية.
             </p>
 
             <!-- CTAs -->
@@ -155,7 +150,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-20">
                 <span class="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block">مميزاتنا</span>
-                <h2 class="text-3xl md:text-5xl font-black text-primary-900 mb-6">لماذا تختار منصة نسبة؟</h2>
+                <h2 class="text-3xl md:text-5xl font-black text-primary-900 mb-6">لماذا تختار منصة {{ config('app.name', 'حليف') }}؟</h2>
                 <p class="text-gray-500 text-lg">نقدم لك أدوات احترافية، تتبع دقيق، وعمولات مجزية تجعل من تسويقك رحلة ممتعة ومربحة.</p>
             </div>
 
@@ -253,7 +248,7 @@
                         <span class="text-primary-600 font-bold text-xl" x-text="active === 1 ? '-' : '+'">+</span>
                     </button>
                     <div x-show="active === 1" x-collapse class="px-6 pb-6 text-gray-600 leading-relaxed bg-gray-50/50">
-                        نعم، الانضمام إلى برنامج "نسبة" مجاني تماماً ولا توجد أي رسوم شهرية أو سنوية.
+                        نعم، الانضمام إلى برنامج "{{ config('app.name', 'حليف') }}" مجاني تماماً ولا توجد أي رسوم شهرية أو سنوية.
                     </div>
                 </div>
 
@@ -318,18 +313,13 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-gray-100 pt-16 pb-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 bg-primary-900 rounded-xl flex items-center justify-center font-black text-white text-lg shadow-lg">
-                    %
-                </div>
-                <span class="text-2xl font-black text-primary-900">نسبة</span>
-            </div>
+            <x-application-logo />
             <div class="flex flex-wrap justify-center gap-8 text-sm font-medium text-gray-500">
                 <a href="#" class="hover:text-primary-900 transition">الشروط والأحكام</a>
                 <a href="#" class="hover:text-primary-900 transition">سياسة الخصوصية</a>
                 <a href="#" class="hover:text-primary-900 transition">تواصل معنا</a>
             </div>
-            <p class="text-sm text-gray-400">© 2026 منصة نسبة. جميع الحقوق محفوظة.</p>
+            <p class="text-sm text-gray-400">© 2026 منصة {{ config('app.name', 'حليف') }}. جميع الحقوق محفوظة.</p>
         </div>
     </footer>
 

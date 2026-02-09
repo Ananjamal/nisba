@@ -2,6 +2,7 @@
 
 use App\Livewire\Forms\LoginForm;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -12,15 +13,63 @@ new #[Layout('layouts.guest')] class extends Component
     /**
      * Handle an incoming authentication request.
      */
-    public function login(): void
+    public bool $otpRequired = false;
+    public int $resendCountdown = 0;
+    public string $loginType = '';
+
+    /**
+     * Handle an incoming authentication request.
+     */
+    public function login(\App\Services\OtpService $otpService): void
     {
-        $this->validate();
+        if ($this->otpRequired) {
+            $this->validate([
+                'form.otp' => 'required|numeric|digits:6',
+            ]);
 
-        $this->form->authenticate();
+            $user = \App\Models\User::where($this->loginType, $this->form->login)->first();
 
+            if (! $user || ! $otpService->verifyOtp($user, $this->form->otp)) {
+                $this->addError('form.otp', 'رمز التحقق غير صحيح أو منتهي الصلاحية');
+                return;
+            }
+
+            $this->completeLogin($user);
+        } else {
+            $this->validate();
+
+            $user = $this->form->validateCredentials();
+            $this->loginType = filter_var($this->form->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+            if ($this->loginType === 'email') {
+                $this->completeLogin($user);
+            } else {
+                $otpService->sendOtp($user);
+                $this->otpRequired = true;
+                $this->resendCountdown = 60;
+                $this->js("setTimeout(() => document.getElementById('otp').focus(), 100)");
+            }
+        }
+    }
+
+    public function resendOtp(\App\Services\OtpService $otpService): void
+    {
+        if ($this->resendCountdown > 0) return;
+
+        $user = \App\Models\User::where($this->loginType, $this->form->login)->first();
+        if ($user) {
+            $otpService->sendOtp($user);
+            $this->resendCountdown = 60;
+            $this->dispatch('toast', type: 'success', message: 'تم إعادة إرسال رمز التحقق');
+        }
+    }
+
+    private function completeLogin($user): void
+    {
+        Auth::login($user, $this->form->remember);
         Session::regenerate();
 
-        if (auth()->user()->role === 'admin') {
+        if ($user->hasRole('admin')) {
             $this->redirect(route('admin.dashboard', absolute: false), navigate: true);
         } else {
             $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
@@ -35,28 +84,65 @@ new #[Layout('layouts.guest')] class extends Component
 
     <div class="bg-white/90 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-white/50 relative z-10">
         <div class="text-center mb-10">
+            <x-application-logo class="justify-center mb-6 text-primary-900" />
             <h1 class="text-3xl font-black text-primary-900 mb-2">مرحباً بعودتك! 👋</h1>
             <p class="text-gray-500 font-medium">أدخل بياناتك للدخول إلى لوحة التحكم</p>
         </div>
 
         <form wire:submit="login" class="space-y-6">
-            <!-- Email Address -->
+            @if ($otpRequired)
+            <div class="animate-fade-in-up">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">أدخل رمز التحقق</h3>
+                    <p class="text-sm text-gray-500">تم إرسال رمز التحقق إلى {{ $form->login }}</p>
+                </div>
+
+                <div>
+                    <label for="otp" class="block text-sm font-bold text-gray-700 mb-2">رمز التحقق (OTP)</label>
+                    <div class="relative group">
+                        <input wire:model="form.otp" id="otp" type="text" name="otp" required autofocus
+                            class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-bold text-center tracking-widest text-2xl focus:bg-white focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all placeholder:text-gray-300"
+                            placeholder="******" maxlength="6">
+                    </div>
+                    <x-input-error :messages="$errors->get('form.otp')" class="mt-2" />
+                </div>
+
+                <div class="text-center mt-6 flex flex-col gap-3">
+                    <div x-data="{ countdown: @entangle('resendCountdown') }" x-init="setInterval(() => { if(countdown > 0) countdown-- }, 1000)">
+                        <button type="button"
+                            wire:click="resendOtp"
+                            x-bind:disabled="countdown > 0"
+                            class="text-sm font-bold text-primary-600 hover:text-primary-800 disabled:text-gray-400 disabled:cursor-not-allowed transition">
+                            <span x-show="countdown == 0">إعادة إرسال الرمز</span>
+                            <span x-show="countdown > 0">إعادة الإرسال خلال <span x-text="countdown"></span> ثانية</span>
+                        </button>
+                    </div>
+                    <button type="button" wire:click="$set('otpRequired', false)" class="text-sm text-gray-500 hover:text-primary-600 underline">
+                        العودة لتسجيل الدخول
+                    </button>
+                </div>
+            </div>
+            @else
             <div>
-                <label for="email" class="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني</label>
+                <label for="login" class="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني أو رقم الهاتف</label>
                 <div class="relative group">
-                    <input wire:model="form.email" id="email" type="email" name="email" required autofocus
+                    <input wire:model="form.login" id="login" type="text" name="login" required autofocus
                         class="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary-100 focus:border-primary-500 transition-all placeholder:text-gray-400"
-                        placeholder="example@nisba.com">
+                        placeholder="example@haleef.com او 05xxxxxxxx">
                     <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
                         </svg>
                     </div>
                 </div>
-                <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
+                <x-input-error :messages="$errors->get('form.login')" class="mt-2" />
             </div>
 
-            <!-- Password -->
             <div>
                 <div class="flex justify-between mb-2">
                     <label for="password" class="block text-sm font-bold text-gray-700">كلمة المرور</label>
@@ -74,6 +160,7 @@ new #[Layout('layouts.guest')] class extends Component
                 </div>
                 <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
             </div>
+            @endif
 
             <div class="flex items-center">
                 <label for="remember" class="inline-flex items-center">

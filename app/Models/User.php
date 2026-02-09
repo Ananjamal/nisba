@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -23,12 +23,17 @@ class User extends Authenticatable
         'password',
         'phone',
         'role',
+        'rank',
+        'commission_multiplier',
         'status',
         'parent_id',
         'iban',
         'bank_name',
         'account_holder_name',
         'sector',
+        'otp_code',
+        'otp_expires_at',
+        'promotion_plan',
     ];
 
     public function parent()
@@ -62,6 +67,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'bank_account_verified_at' => 'datetime',
+            'otp_expires_at' => 'datetime',
+            'promotion_plan' => 'array',
         ];
     }
 
@@ -72,7 +79,7 @@ class User extends Authenticatable
 
     public function leads()
     {
-        return $this->hasMany(Lead::class);
+        return $this->belongsToMany(Lead::class, 'lead_user')->withTimestamps();
     }
 
     public function referrals()
@@ -93,5 +100,35 @@ class User extends Authenticatable
     public function isAffiliate()
     {
         return $this->role === 'affiliate';
+    }
+
+    public function getRankBadgeColor()
+    {
+        return match ($this->rank) {
+            'bronze' => 'bg-orange-100 text-orange-700 border-orange-200',
+            'silver' => 'bg-gray-100 text-gray-700 border-gray-200',
+            'gold' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+            default => 'bg-gray-100 text-gray-700 border-gray-200',
+        };
+    }
+
+    public function getRankLabel()
+    {
+        return match ($this->rank) {
+            'bronze' => 'برونزي',
+            'silver' => 'فضي',
+            'gold' => 'ذهبي',
+            default => 'برونزي',
+        };
+    }
+
+    public function getRankIcon()
+    {
+        return match ($this->rank) {
+            'bronze' => '🥉',
+            'silver' => '🥈',
+            'gold' => '🥇',
+            default => '🥉',
+        };
     }
 }

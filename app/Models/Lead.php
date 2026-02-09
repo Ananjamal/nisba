@@ -33,6 +33,11 @@ class Lead extends Model
         'recommended_systems' => 'array',
     ];
 
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'lead_user')->withTimestamps();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

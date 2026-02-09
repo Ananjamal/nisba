@@ -12,14 +12,38 @@ use Livewire\Form;
 
 class LoginForm extends Form
 {
-    #[Validate('required|string|email')]
-    public string $email = '';
+    #[Validate('required|string')]
+    public string $login = '';
 
     #[Validate('required|string')]
     public string $password = '';
 
     #[Validate('boolean')]
     public bool $remember = false;
+
+    public ?string $otp = '';
+
+    /**
+     * Check credentials without logging in.
+     */
+    public function validateCredentials(): \App\Models\User
+    {
+        $this->ensureIsNotRateLimited();
+
+        $login_type = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+        if (! Auth::validate([$login_type => $this->login, 'password' => $this->password])) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'form.login' => trans('auth.failed'),
+            ]);
+        }
+
+        RateLimiter::clear($this->throttleKey());
+
+        return \App\Models\User::where($login_type, $this->login)->first();
+    }
 
     /**
      * Attempt to authenticate the request's credentials.
@@ -30,11 +54,13 @@ class LoginForm extends Form
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
+        $login_type = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+        if (! Auth::attempt([$login_type => $this->login, 'password' => $this->password], $this->remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'form.email' => trans('auth.failed'),
+                'form.login' => trans('auth.failed'),
             ]);
         }
 
@@ -55,7 +81,7 @@ class LoginForm extends Form
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'form.email' => trans('auth.throttle', [
+            'form.login' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -67,6 +93,6 @@ class LoginForm extends Form
      */
     protected function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
+        return Str::transliterate(Str::lower($this->login) . '|' . request()->ip());
     }
 }

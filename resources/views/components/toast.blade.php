@@ -1,4 +1,4 @@
-<div x-data="toastManager()" @toast.window="show($event.detail)" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
+<div x-data="toastManager()" @toast.window="show($event.detail)" @notify.window="show($event.detail)" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
     <template x-for="(toast, index) in toasts" :key="toast.id">
         <div x-show="toast.visible"
             x-transition:enter="transition ease-out duration-300"

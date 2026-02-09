@@ -50,9 +50,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(function () {
     Volt::route('/', 'admin.dashboard')->name('admin.dashboard');
     Volt::route('/leads', 'admin.leads')->name('admin.leads');
+    Volt::route('/leads/{lead}', 'admin.leads-show')->name('admin.leads.show');
     Volt::route('/affiliates', 'admin.affiliates')->name('admin.affiliates');
+    Volt::route('/affiliates/{user}', 'admin.affiliates-show')->name('admin.affiliates.show');
+    Route::get('/marketers/ranks', \App\Livewire\Admin\MarketerRanks::class)->name('admin.marketers.ranks');
     Volt::route('/payouts', 'admin.payouts')->name('admin.payouts');
     Volt::route('/settings', 'admin.settings')->name('admin.settings');
+
+    // Roles & Permissions
+    Route::middleware(['can:manage roles'])->group(function () {
+        Volt::route('/roles', 'admin.roles.index')->name('admin.roles.index');
+    });
+
+    // Staff Management
+    Route::middleware(['can:manage staff'])->group(function () {
+        Volt::route('/staff', 'admin.staff.index')->name('admin.staff.index');
+    });
+
+    // Reports & Exports
+    Route::get('/reports/export/excel', [\App\Http\Controllers\Admin\ReportController::class, 'exportLeadsExcel'])->name('admin.reports.export.excel');
+    Route::get('/reports/export/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportLeadsPdf'])->name('admin.reports.export.pdf');
+    Route::get('/reports/export/payouts/excel', [\App\Http\Controllers\Admin\ReportController::class, 'exportPayoutsExcel'])->name('admin.reports.payouts.excel');
+    Route::get('/reports/export/payouts/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportPayoutsPdf'])->name('admin.reports.payouts.pdf');
 });
 
 require __DIR__ . '/auth.php';

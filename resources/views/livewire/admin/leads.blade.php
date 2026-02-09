@@ -8,8 +8,30 @@ use App\Notifications\GeneralNotification;
 use Livewire\Attributes\Layout;
 
 new #[Layout('layouts.admin')] class extends Component {
-    public $search = '';
-    public $status_filter = '';
+    use App\Livewire\Traits\WithDynamicTable;
+
+    public $sector_filter = '';
+    public $affiliate_filter = '';
+    public $showFilters = false;
+
+    public function mount()
+    {
+        $this->loadTablePrefs([
+            'client' => true,
+            'sector' => true,
+            'commission' => true,
+            'affiliate' => true,
+            'date' => true,
+            'city_phone' => true,
+            'status' => true,
+            'actions' => true,
+        ]);
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['search', 'status_filter', 'sector_filter', 'affiliate_filter', 'date_from', 'date_to']);
+    }
 
     // Create/Edit Modal State
     public $showCreateModal = false;
@@ -21,8 +43,9 @@ new #[Layout('layouts.admin')] class extends Component {
     public $sector = '';
     public $commission_type = 'fixed';
     public $commission_rate = '';
+    public $region = '';
     public $city = '';
-    public $affiliate_id = ''; // Optional: assign to affiliate
+    public $affiliate_ids = []; // Multiple affiliates
     public $recommended_systems = []; // Array of system IDs
 
     public function resetForm()
@@ -35,11 +58,13 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->sector = '';
         $this->commission_type = 'fixed';
         $this->commission_rate = '';
+        $this->region = '';
         $this->city = '';
-        $this->affiliate_id = '';
+        $this->affiliate_ids = [];
         $this->recommended_systems = [];
         $this->resetValidation();
     }
+
 
     public function openCreateModal()
     {
@@ -49,7 +74,7 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public function editLead($id)
     {
-        $lead = Lead::findOrFail($id);
+        $lead = Lead::with('users')->findOrFail($id);
         $this->leadId = $lead->id;
         $this->name = $lead->client_name;
         $this->phone = $lead->client_phone;
@@ -59,7 +84,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->sector = $lead->sector;
         $this->commission_type = $lead->commission_type;
         $this->commission_rate = $lead->commission_rate;
-        $this->affiliate_id = $lead->user_id === auth()->id() ? '' : $lead->user_id;
+        $this->affiliate_ids = $lead->users->pluck('id')->toArray();
         $this->recommended_systems = $lead->recommended_systems ?? [];
 
         $this->showCreateModal = true;
@@ -82,7 +107,8 @@ new #[Layout('layouts.admin')] class extends Component {
             'commission_type' => 'required|in:fixed,percentage',
             'commission_rate' => 'required|numeric|min:0',
             'sector' => 'nullable|string|max:255',
-            'affiliate_id' => 'nullable|exists:users,id',
+            'affiliate_ids' => 'nullable|array',
+            'affiliate_ids.*' => 'exists:users,id',
         ]);
 
         $data = [
@@ -97,18 +123,18 @@ new #[Layout('layouts.admin')] class extends Component {
             'recommended_systems' => $this->recommended_systems,
         ];
 
-        // Only update user_id (affiliate) if explicitly set for admin, or if creating new
-        // For admin editing, we might want to allow changing affiliate? Yes.
-        $userId = $this->affiliate_id ?: auth()->id();
-        $data['user_id'] = $userId;
+        // Determine affiliate IDs to sync
+        $affiliateIds = !empty($this->affiliate_ids) ? $this->affiliate_ids : [\Illuminate\Support\Facades\Auth::id()];
 
         if ($this->leadId) {
             $lead = Lead::findOrFail($this->leadId);
             $lead->update($data);
+            $lead->users()->sync($affiliateIds);
             $message = 'تم تحديث بيانات العميل بنجاح!';
         } else {
             $data['status'] = 'under_review';
-            Lead::create($data);
+            $lead = Lead::create($data);
+            $lead->users()->sync($affiliateIds);
             $message = 'تم إضافة العميل بنجاح!';
         }
 
@@ -151,19 +177,41 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->dispatch('lead-updated');
     }
 
+    public $showViewModal = false;
+    public $viewLead = null;
+
+    public function openViewModal($id)
+    {
+        $this->viewLead = Lead::with('user')->findOrFail($id);
+        $this->showViewModal = true;
+    }
+
     public function with()
     {
         return [
-            'leads' => Lead::when($this->search, function ($query) {
-                $query->where('client_name', 'like', '%' . $this->search . '%')
-                    ->orWhere('company_name', 'like', '%' . $this->search . '%');
-            })
+            'leads' => Lead::with('users')
+                ->when($this->search, function ($query) {
+                    $query->where('client_name', 'like', '%' . $this->search . '%')
+                        ->orWhere('company_name', 'like', '%' . $this->search . '%')
+                        ->orWhere('client_phone', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                })
                 ->when($this->status_filter, function ($query) {
                     $query->where('status', $this->status_filter);
                 })
-                ->latest()
+                ->when($this->sector_filter, function ($query) {
+                    $query->where('sector', $this->sector_filter);
+                })
+                ->when($this->affiliate_filter, function ($query) {
+                    $query->whereHas('users', fn($q) => $q->where('users.id', $this->affiliate_filter));
+                })
+                ->when($this->date_from, fn($query) => $query->whereDate('created_at', '>=', $this->date_from))
+                ->when($this->date_to, fn($query) => $query->whereDate('created_at', '<=', $this->date_to))
+                ->orderBy($this->sortField, $this->sortDirection)
                 ->paginate(10),
             'affiliates' => \App\Models\User::where('role', 'affiliate')->get(),
+            'regions' => \App\Services\SaudiGeoService::getRegions(),
+            'regionsWithCities' => \App\Services\SaudiGeoService::getRegionsWithCities(),
             'available_systems' => [
                 ['name' => 'قيود', 'id' => 'qoyod'],
                 ['name' => 'دفترة', 'id' => 'daftra'],
@@ -172,91 +220,186 @@ new #[Layout('layouts.admin')] class extends Component {
     }
 }; ?>
 
-<div class="space-y-6" x-data="{ showDeleteModal: false, deletingId: null }">
+<div class="space-y-8" x-data="{ showDeleteModal: false, deletingId: null }">
     @if (session()->has('message'))
     <div class="p-4 text-sm text-green-700 bg-green-100 rounded-2xl font-bold border border-green-200" role="alert">
         {{ session('message') }}
     </div>
     @endif
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
-        <div class="flex flex-col md:flex-row gap-4 mb-6 justify-between items-center">
-            <div class="flex gap-4 w-full md:w-auto flex-1">
-                <div class="flex-1 relative">
-                    <input type="text" wire:model.live="search" placeholder="بحث بالاسم أو الشركة..." class="w-full pr-10 py-3 bg-white border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 shadow-sm">
-                    <div class="absolute inset-y-0 right-3 flex items-center text-blue-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <x-table.filter-bar :statusOptions="['under_review' => 'تحت المراجعة', 'contacting' => 'جاري التواصل', 'sold' => 'تم البيع', 'cancelled' => 'ملغي']">
+
+            <x-slot name="actions">
+                <div class="flex gap-2">
+                    <x-table.column-toggler :columns="$columns" :labels="[
+                    'client' => 'العميل',
+                    'sector' => 'القطاع / الأنظمة',
+                    'commission' => 'العمولة',
+                    'affiliate' => 'الشريك (المسوق)',
+                    'date' => 'تاريخ الإضافة',
+                    'city_phone' => 'المدينة / الهاتف',
+                    'status' => 'الحالة',
+                    'actions' => 'العمليات'
+                ]" />
+
+                    <a href="{{ route('admin.reports.export.excel', ['search' => $search, 'status' => $status_filter, 'sector' => $sector_filter, 'affiliate' => $affiliate_filter]) }}"
+                        target="_blank"
+                        class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all duration-300 shadow-sm"
+                        title="تصدير Excel">
+                        <svg class="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                    </div>
+                    </a>
+                    <a href="{{ route('admin.reports.export.pdf', ['search' => $search, 'status' => $status_filter, 'sector' => $sector_filter, 'affiliate' => $affiliate_filter]) }}"
+                        target="_blank"
+                        class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
+                        title="تصدير PDF">
+                        <svg class="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </a>
+                    <button wire:click="openCreateModal" class="btn btn-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        إضافة عميل
+                    </button>
                 </div>
-                <select wire:model.live="status_filter" class="w-full md:w-48 py-3 bg-white border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 cursor-pointer shadow-sm">
-                    <option value="">كل الحالات</option>
-                    <option value="under_review">تحت المراجعة</option>
-                    <option value="contacting">جاري التواصل</option>
-                    <option value="sold">تم البيع</option>
-                    <option value="cancelled">ملغي</option>
+            </x-slot>
+        </x-table.filter-bar>
+
+        <!-- فلاتر إضافية -->
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+            <!-- فلتر القطاع -->
+            <div class="relative min-w-[180px] group">
+                <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <select wire:model.live="sector_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
+                    <option value="">جميع القطاعات</option>
+                    @foreach(['العقارات', 'التقنية والبرمجة', 'التسويق والدعاية', 'التجارة الإلكترونية', 'التعليم', 'الصحة', 'الخدمات المالية', 'المقاولات والبناء', 'المطاعم والكافيهات', 'أخرى'] as $sec)
+                    <option value="{{ $sec }}">{{ $sec }}</option>
+                    @endforeach
                 </select>
-                <select wire:model.live="sector_filter" class="w-full md:w-48 py-3 bg-white border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 cursor-pointer shadow-sm">
-                    <option value="">كل القطاعات</option>
-                    <option value="العقارات">العقارات</option>
-                    <option value="التقنية والبرمجة">التقنية والبرمجة</option>
-                    <option value="التسويق والدعاية">التسويق والدعاية</option>
-                    <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
-                    <option value="التعليم">التعليم</option>
-                    <option value="الصحة">الصحة</option>
-                    <option value="الخدمات المالية">الخدمات المالية</option>
-                    <option value="المقاولات والبناء">المقاولات والبناء</option>
-                    <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
-                    <option value="أخرى">أخرى</option>
-                </select>
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
             </div>
-            <button wire:click="openCreateModal" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 font-bold flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+
+            <!-- فلتر المسوق -->
+            <div class="relative min-w-[180px] group">
+                <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <select wire:model.live="affiliate_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
+                    <option value="">جميع المسوقين</option>
+                    @foreach($affiliates as $affiliate)
+                    <option value="{{ $affiliate->id }}">{{ $affiliate->name }}</option>
+                    @endforeach
+                </select>
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- زر إعادة تعيين الفلاتر -->
+            @if($sector_filter || $affiliate_filter)
+            <button wire:click="$set('sector_filter', ''); $set('affiliate_filter', '')"
+                class="px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                إضافة عميل
+                إعادة تعيين
             </button>
+            @endif
         </div>
 
-        @if($showCreateModal)
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in-up">
-                <div class="bg-blue-600 p-6 flex justify-between items-center text-white">
-                    <h3 class="text-xl font-bold">{{ $leadId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد' }}</h3>
-                    <button wire:click="$set('showCreateModal', false)" class="hover:bg-white/20 p-2 rounded-lg transition">
+        <div x-data="{ show: $wire.entangle('showCreateModal') }"
+            x-show="show"
+            x-on:keydown.escape.window="show = false"
+            class="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto"
+            style="display: none;">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity"
+                @click="show = false"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"></div>
+
+            <!-- Modal Container -->
+            <div class="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl mt-4 mb-6 max-h-[85vh] flex flex-col border-2 border-gray-200"
+                @click.away="show = false"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100">
+
+                <!-- Header - Soft and Clean -->
+                <div class="bg-gradient-to-b from-gray-50 to-white px-8 py-6 flex justify-between items-center flex-shrink-0 border-b border-gray-200">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ $leadId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد' }}</h3>
+                        <p class="text-gray-500 text-sm mt-1.5">{{ $leadId ? 'قم بتحديث معلومات العميل' : 'أدخل معلومات العميل الجديد' }}</p>
+                    </div>
+                    <button wire:click="$set('showCreateModal', false)"
+                        class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2.5 rounded-xl transition-all duration-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+
+                <!-- Modal Content - Scrollable -->
+                <div class="p-8 space-y-6 overflow-y-auto flex-1 bg-white">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">اسم العميل</label>
-                            <input type="text" wire:model="name" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
-                            @error('name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم العميل</label>
+                            <input type="text" wire:model="name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">رقم الهاتف</label>
-                            <input type="text" wire:model="phone" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
-                            @error('phone') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">رقم الهاتف</label>
+                            <input type="text" wire:model="phone" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            @error('phone') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني (اختياري)</label>
-                            <input type="email" wire:model="email" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">البريد الإلكتروني <span class="text-gray-400 text-xs">(اختياري)</span></label>
+                            <input type="email" wire:model="email" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">المدينة</label>
-                            <input type="text" wire:model="city" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المنطقة</label>
+                            <select wire:model.live="region" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                <option value="">اختر المنطقة</option>
+                                @foreach($regions as $regionName)
+                                <option value="{{ $regionName }}">{{ $regionName }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">اسم الشركة</label>
-                            <input type="text" wire:model="company_name" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المدينة</label>
+                            <select wire:model="city" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white" {{ !$region ? 'disabled' : '' }}>
+                                <option value="">{{ $region ? 'اختر المدينة' : 'اختر المنطقة أولاً' }}</option>
+                                @if($region && isset($regionsWithCities[$region]))
+                                @foreach($regionsWithCities[$region] as $cityName)
+                                <option value="{{ $cityName }}">{{ $cityName }}</option>
+                                @endforeach
+                                @endif
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">القطاع / المجال</label>
-                            <select wire:model="sector" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم الشركة</label>
+                            <input type="text" wire:model="company_name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">القطاع / المجال</label>
+                            <select wire:model="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
                                 <option value="">اختر القطاع</option>
                                 <option value="العقارات">العقارات</option>
                                 <option value="التقنية والبرمجة">التقنية والبرمجة</option>
@@ -271,30 +414,34 @@ new #[Layout('layouts.admin')] class extends Component {
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">الأنظمة المقترحة</label>
-                            <div class="grid grid-cols-2 gap-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-3.5">الخدمة المقترحة</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 @foreach($available_systems as $system)
                                 <button type="button"
                                     wire:click="toggleSystem('{{ $system['id'] }}')"
-                                    class="relative group flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200 bg-white' }}">
+                                    class="relative group flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 {{ in_array($system['id'], $recommended_systems) ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20' : 'border-gray-200 hover:border-blue-300 bg-white hover:shadow-md' }}">
 
-                                    <div class="h-10 flex items-center justify-center mb-2 transition-transform group-hover:scale-105">
-                                        <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all">
+                                    <div class="h-12 flex items-center justify-center mb-3 transition-transform group-hover:scale-110 duration-300">
+                                        <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all duration-300">
                                     </div>
 
-                                    <div class="flex items-center gap-1.5">
-                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-primary-900' : 'border-gray-300' }}">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 {{ in_array($system['id'], $recommended_systems) ? 'border-blue-600 bg-blue-600 scale-110' : 'border-gray-300 group-hover:border-blue-400' }}">
                                             @if(in_array($system['id'], $recommended_systems))
-                                            <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                                             </svg>
                                             @endif
                                         </div>
-                                        <span class="font-bold text-xs {{ in_array($system['id'], $recommended_systems) ? 'text-primary-900' : 'text-gray-500 group-hover:text-gray-700' }}">{{ $system['name'] }}</span>
+                                        <span class="font-bold text-xs {{ in_array($system['id'], $recommended_systems) ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800' }} transition-colors">{{ $system['name'] }}</span>
                                     </div>
 
                                     @if(in_array($system['id'], $recommended_systems))
-                                    <div class="absolute inset-0 border-2 border-primary-900 rounded-xl pointer-events-none"></div>
+                                    <div class="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-1">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
                                     @endif
                                 </button>
                                 @endforeach
@@ -302,69 +449,122 @@ new #[Layout('layouts.admin')] class extends Component {
                         </div>
                     </div>
 
-                    <div class="border-t border-gray-100 pt-4 mt-4">
-                        <h4 class="font-bold text-blue-900 mb-4">إعدادات العمولة</h4>
+                    <div class="border-t border-gray-200 pt-6 mt-6">
+                        <h4 class="font-semibold text-gray-800 mb-5 text-base">إعدادات العمولة</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">نوع العمولة</label>
-                                <select wire:model.live="commission_type" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2.5">نوع العمولة</label>
+                                <select wire:model.live="commission_type" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
                                     <option value="fixed">مبلغ ثابت</option>
                                     <option value="percentage">نسبة مئوية</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2.5">
                                     {{ $commission_type === 'fixed' ? 'قيمة العمولة (ريال)' : 'نسبة العمولة (%)' }}
                                 </label>
-                                <input type="number" wire:model="commission_rate" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
-                                @error('commission_rate') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                <input type="number" wire:model="commission_rate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                @error('commission_rate') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>
 
-                    <div class="border-t border-gray-100 pt-4 mt-4">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">تعيين لمسوق (اختياري)</label>
-                        <select wire:model="affiliate_id" class="w-full border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">-- بدون مسوق (مباشر) --</option>
+                    <div class="border-t border-gray-200 pt-6 mt-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-4">المسوقين <span class="text-gray-400 text-xs">(يمكن اختيار أكثر من مسوق)</span></label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
                             @foreach($affiliates as $affiliate)
-                            <option value="{{ $affiliate->id }}">{{ $affiliate->name }} ({{ $affiliate->email }})</option>
+                            <label class="flex items-center gap-3 p-3.5 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 border border-transparent hover:border-blue-300 hover:shadow-sm">
+                                <input type="checkbox"
+                                    wire:model="affiliate_ids"
+                                    value="{{ $affiliate->id }}"
+                                    class="w-5 h-5 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500 border-gray-300">
+                                <div class="flex-1">
+                                    <span class="text-sm font-bold text-gray-800 block">{{ $affiliate->name }}</span>
+                                    <span class="text-xs text-gray-500">{{ $affiliate->email }}</span>
+                                </div>
+                            </label>
                             @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">إذا لم يتم التحديد، سيتم تعيين العميل لك.</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            إذا لم يتم اختيار أي مسوق، سيتم تعيين العميل لك تلقائياً.
+                        </p>
+                        @error('affiliate_ids') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex justify-end gap-3 mt-6">
-                        <button wire:click="$set('showCreateModal', false)" class="px-6 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-bold transition">إلغاء</button>
-                        <button wire:click="saveLead" class="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:shadow-lg hover:shadow-blue-500/30 transition">
+
+                    <!-- Modal Footer - Sticky -->
+                    <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 bg-gray-50 -mx-8 px-8 -mb-8 pb-6 flex-shrink-0">
+                        <button wire:click="$set('showCreateModal', false)"
+                            class="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 font-semibold transition-all duration-200 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            إلغاء
+                        </button>
+                        <button wire:click="saveLead"
+                            class="btn btn-primary">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
                             {{ $leadId ? 'حفظ التغييرات' : 'حفظ العميل' }}
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        @endif
 
         <div class="overflow-x-auto">
             <table class="w-full text-right">
                 <thead>
-                    <tr class="text-blue-400 text-sm border-b border-blue-50">
-                        <th class="pb-4 font-bold">العميل</th>
-                        <th class="pb-4 font-bold">القطاع / الأنظمة</th>
-                        <th class="pb-4 font-bold">العمولة</th>
+                    <tr class="text-primary-400 text-sm border-b border-primary-50">
+                        @if($columns['client'])
+                        <x-table.th field="client_name" :sortField="$sortField" :sortDirection="$sortDirection" label="العميل" />
+                        @endif
+                        @if($columns['sector'])
+                        <x-table.th field="sector" :sortField="$sortField" :sortDirection="$sortDirection" label="القطاع / الأنظمة" />
+                        @endif
+                        @if($columns['commission'])
+                        <x-table.th field="commission_rate" :sortField="$sortField" :sortDirection="$sortDirection" label="العمولة" />
+                        @endif
+                        @if($columns['affiliate'])
                         <th class="pb-4 font-bold">الشريك (المسوق)</th>
-                        <th class="pb-4 font-bold">تاريخ الإضافة</th>
-                        <th class="pb-4 font-bold">المدينة / الهاتف</th>
-                        <th class="pb-4 font-bold">الحالة</th>
-                        <th class="pb-4 font-bold">الإجراءات</th>
+                        @endif
+                        @if($columns['date'])
+                        <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ الإضافة" />
+                        @endif
+                        @if($columns['city_phone'])
+                        <x-table.th field="city" :sortField="$sortField" :sortDirection="$sortDirection" label="المدينة / الهاتف" />
+                        @endif
+                        @if($columns['status'])
+                        <x-table.th field="status" :sortField="$sortField" :sortDirection="$sortDirection" label="الحالة" />
+                        @endif
+                        @if($columns['actions'])
+                        <th class="pb-4 font-bold text-left">العمليات</th>
+                        @endif
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-blue-50">
-                    @foreach($leads as $lead)
-                    <tr class="hover:bg-blue-50/20 border-b border-blue-50 transition">
+                <tbody class="divide-y divide-primary-50">
+                    @forelse($leads as $lead)
+                    <tr class="group hover:bg-gray-50 transition-colors duration-200">
+                        @if($columns['client'])
                         <td class="py-4">
-                            <p class="font-bold text-blue-900">{{ $lead->client_name }}</p>
-                            <p class="text-xs text-blue-400">{{ $lead->company_name }}</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 font-bold">
+                                    {{ mb_substr($lead->client_name, 0, 1) }}
+                                </div>
+                                <div>
+                                    <a href="{{ route('admin.leads.show', $lead->id) }}" class="font-bold text-gray-900 block hover:text-primary-600 transition text-right">
+                                        {{ $lead->client_name }}
+                                    </a>
+                                    <span class="text-xs text-gray-500">{{ $lead->company_name }}</span>
+                                </div>
+                            </div>
                         </td>
+                        @endif
+                        @if($columns['sector'])
                         <td class="py-4">
                             <span class="text-sm text-gray-600 block mb-1">{{ $lead->sector ?? '-' }}</span>
                             @if($lead->recommended_systems)
@@ -375,23 +575,52 @@ new #[Layout('layouts.admin')] class extends Component {
                             </div>
                             @endif
                         </td>
+                        @endif
+                        @if($columns['commission'])
                         <td class="py-4">
                             @if($lead->commission_type === 'fixed')
                             <span class="text-sm font-bold text-green-600">{{ number_format($lead->commission_rate) }} ريال</span>
                             @else
-                            <span class="text-sm font-bold text-blue-600">{{ $lead->commission_rate }}%</span>
+                            <span class="text-sm font-bold text-primary-600">{{ $lead->commission_rate }}%</span>
                             @endif
                         </td>
+                        @endif
+                        @if($columns['affiliate'])
                         <td class="py-4">
-                            <p class="text-sm font-bold text-blue-600">{{ $lead->user->name }}</p>
+                            @if($lead->users->count() > 0)
+                            @foreach($lead->users as $marketer)
+                            <div class="inline-flex flex-col gap-1 px-3 py-2 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold mb-2 mr-2 border border-primary-100 shadow-sm">
+                                <div class="flex items-center gap-2">
+                                    <span>{{ $marketer->name }}</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] border {{ $marketer->getRankBadgeColor() }}">
+                                        {{ $marketer->getRankIcon() }} {{ $marketer->getRankLabel() }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[10px] text-primary-500">
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    {{ $marketer->phone ?: 'لا يوجد هاتف' }}
+                                </div>
+                            </div>
+                            @endforeach
+                            @else
+                            <span class="text-xs text-gray-400">لا يوجد مسوق</span>
+                            @endif
                         </td>
+                        @endif
+                        @if($columns['date'])
                         <td class="py-4">
-                            <p class="text-sm font-bold text-blue-600">{{ $lead->created_at->format('Y-m-d') }}</p>
+                            <p class="text-sm font-bold text-primary-600">{{ $lead->created_at->format('Y-m-d') }}</p>
                         </td>
+                        @endif
+                        @if($columns['city_phone'])
                         <td class="py-4">
-                            <p class="text-sm font-bold text-blue-800">{{ $lead->city }}</p>
-                            <p class="text-xs text-blue-400">{{ $lead->client_phone }}</p>
+                            <p class="text-sm font-bold text-primary-800">{{ $lead->city }}</p>
+                            <p class="text-xs text-primary-400">{{ $lead->client_phone }}</p>
                         </td>
+                        @endif
+                        @if($columns['status'])
                         <td class="py-4">
                             @php
                             $statusColors = [
@@ -421,41 +650,49 @@ new #[Layout('layouts.admin')] class extends Component {
                                 @endif
                             </div>
                         </td>
+                        @endif
+                        @if($columns['actions'])
                         <td class="py-4">
                             <div class="flex gap-2">
+                                <button wire:click="openViewModal({{ $lead->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="عرض التفاصيل">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
                                 @if($lead->status !== 'sold')
-                                <button wire:click="updateStatus({{ $lead->id }}, 'sold', true)" class="p-1 text-green-500 hover:bg-green-50 rounded transition border border-transparent hover:border-green-200" title="تأكيد المبيعة والدفع">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button wire:confirm="هل أنت متأكد من تغيير حالة المبيعة إلى تم البيع؟ سيتم تأكيد استحقاق العمولة للمسوقين." wire:click="updateStatus({{ $lead->id }}, 'sold', true)" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-xl transition-all duration-300" title="تأكيد المبيعة والدفع">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                 </button>
                                 @endif
-                                @if($lead->status === 'under_review')
-                                <button wire:click="updateStatus({{ $lead->id }}, 'contacting')" class="p-1 text-yellow-500 hover:bg-yellow-50 rounded transition border border-transparent hover:border-yellow-200" title="جاري التواصل">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 011 .684l.708 2.828a1 1 0 01-.366 1.05L7.42 8.42a15.05 15.05 0 006.58 6.58l1.07-1.07a1 1 0 011.05-.366l2.828.708a1 1 0 01.684 1V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                <button wire:click="editLead({{ $lead->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="تعديل">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                 </button>
-                                @endif
-                                <button wire:click="editLead({{ $lead->id }})" class="p-1 text-blue-500 hover:bg-blue-50 rounded transition border border-transparent hover:border-blue-200" title="تعديل">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                                <button @click="deletingId = {{ $lead->id }}; showDeleteModal = true" class="p-1 text-red-500 hover:bg-red-50 rounded transition border border-transparent hover:border-red-200" title="حذف">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                                <button wire:click="updateStatus({{ $lead->id }}, 'cancelled')" class="p-1 text-red-400 hover:bg-red-50 rounded transition border border-transparent hover:border-red-200" title="إلغاء">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                <button wire:confirm="هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء." wire:click="deleteLead({{ $lead->id }})" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-300" title="حذف">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
                             </div>
                         </td>
+                        @endif
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="8" class="py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p class="font-bold">لا يوجد مبيعات حالياً</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -463,35 +700,164 @@ new #[Layout('layouts.admin')] class extends Component {
             {{ $leads->links() }}
         </div>
     </div>
-    <!-- Professional Delete Confirmation Modal -->
+    <!-- Professional View Details Modal -->
     <template x-teleport="body">
-        <div x-show="showDeleteModal" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
-            <div class="fixed inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
+        <div x-show="showViewModal"
+            x-on:keydown.escape.window="showViewModal = false"
+            class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showViewModal = false"></div>
 
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all text-center">
-                    <div class="mb-6">
-                        <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
-                            <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
+                <div class="relative w-full max-w-2xl transform overflow-hidden rounded-[2.5rem] bg-white shadow-2xl transition-all"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+
+                    <!-- Modal Header -->
+                    <div class="px-8 py-6 border-b border-primary-50 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
+                        <div>
+                            <h3 class="text-2xl font-black text-primary-900">تفاصيل العميل</h3>
+                            <p class="text-primary-500 text-sm font-medium">عرض المعلومات الكاملة للعميل والمسوقين</p>
                         </div>
-                        <h3 class="text-2xl font-black text-blue-900 mb-2">هل أنت متأكد؟</h3>
-                        <p class="text-blue-500 font-medium">سيتم حذف بيانات العميل نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
+                        <button @click="showViewModal = false" class="p-2 rounded-full hover:bg-white hover:shadow-md transition-all text-primary-400 hover:text-primary-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
 
-                    <div class="flex flex-col gap-3">
-                        <button
-                            @click="$wire.deleteLead(deletingId); showDeleteModal = false"
-                            class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:shadow-red-300 transition-all transform active:scale-95">
-                            تأكيد الحذف
+                    @if($viewLead)
+                    <div class="p-8 max-h-[70vh] overflow-y-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Client Basic Info -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">معلومات العميل</h4>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">الاسم الكامل</p>
+                                                <p class="font-black text-primary-900 text-lg line-height-1">{{ $viewLead->client_name }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">رقم الهاتف</p>
+                                                <p class="font-black text-primary-900 text-lg leading-none">{{ $viewLead->client_phone }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-[10px] text-primary-400 font-bold">البريد الإلكتروني</p>
+                                                <p class="font-black text-primary-900 text-xs truncate">{{ $viewLead->email ?: '-' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+                                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">تفاصيل العمل</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">اسم الشركة</p>
+                                            <p class="font-black text-primary-900">{{ $viewLead->company_name ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">المدينة</p>
+                                            <p class="font-black text-primary-900">{{ $viewLead->city ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">القطاع</p>
+                                            <p class="font-black text-primary-900">{{ $viewLead->sector ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">الحالة</p>
+                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-black {{ $statusColors[$viewLead->status] ?? '' }}">
+                                                {{ $statusLabels[$viewLead->status] ?? $viewLead->status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Marketers & Systems -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">المسوقون المعينون</h4>
+                                    <div class="space-y-3">
+                                        @forelse($viewLead->users as $marketer)
+                                        <div class="flex items-center justify-between p-3 bg-white rounded-2xl border border-primary-50 shadow-sm">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-black text-xs">
+                                                    {{ substr($marketer->name, 0, 1) }}
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-black text-primary-900 line-height-1">{{ $marketer->name }}</p>
+                                                    <p class="text-[10px] text-primary-400 font-bold">{{ $marketer->phone ?: 'لا يوجد هاتف' }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] border font-black {{ $marketer->getRankBadgeColor() }}">
+                                                {{ $marketer->getRankIcon() }} {{ $marketer->getRankLabel() }}
+                                            </span>
+                                        </div>
+                                        @empty
+                                        <p class="text-xs text-gray-400 text-center py-2">لا يوجد مسوقون معينون</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <div class="bg-amber-50/30 p-6 rounded-3xl border border-amber-100">
+                                    <h4 class="text-xs font-black text-amber-500 uppercase tracking-widest mb-4">الأنظمة المقترحة</h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        @forelse($viewLead->recommended_systems ?? [] as $sys)
+                                        <div class="p-2 bg-white rounded-2xl border border-amber-50 shadow-sm flex flex-col items-center gap-1 group transition-all hover:shadow-md">
+                                            <img src="{{ asset('images/systems/'.$sys.'.png') }}" class="w-12 h-12 object-contain group-hover:scale-110 transition-transform">
+                                            <span class="text-[9px] font-black text-amber-700 uppercase">{{ $sys }}</span>
+                                        </div>
+                                        @empty
+                                        <p class="text-xs text-gray-400 text-center py-2 w-full">لا يوجد أنظمة مقترحة</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Section -->
+                        @if($viewLead->notes)
+                        <div class="mt-8 p-6 bg-yellow-50/50 rounded-3xl border border-yellow-100">
+                            <h4 class="text-xs font-black text-yellow-600 uppercase tracking-widest mb-3">ملاحظات إضافية</h4>
+                            <div class="text-sm text-yellow-800 font-medium whitespace-pre-line leading-relaxed">
+                                {{ $viewLead->notes }}
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 rounded-b-[2.5rem] flex justify-end gap-3">
+                        <button @click="showViewModal = false" class="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 hover:shadow-sm transition-all text-sm">
+                            إغلاق
                         </button>
-                        <button
-                            @click="showDeleteModal = false"
-                            class="w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold hover:bg-blue-100 transition-all font-bold">
-                            إلغاء
+                        <button wire:click="editLead({{ $viewLead->id }}); showViewModal = false" class="px-8 py-3 bg-primary-600 text-white rounded-2xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all text-sm">
+                            تعديل البيانات
                         </button>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

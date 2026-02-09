@@ -21,7 +21,7 @@ class WithdrawalRequestNotification extends Notification
     {
         return [
             'title' => 'طلب سحب جديد',
-            'message' => 'تم تقديم طلب سحب جديد بقيمة ' . number_format($this->request->amount, 2) . ' ر.س',
+            'message' => 'تم تقديم طلب سحب جديد بقيمة ' . number_format($this->request->amount, 2) . ' ر.س للعميل: ' . ($this->request->client_name ?: 'عام'),
             'withdrawal_request_id' => $this->request->id,
             'amount' => $this->request->amount,
             'user_name' => $this->request->user->name,

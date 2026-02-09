@@ -15,13 +15,13 @@ new class extends Component {
 <div class="space-y-10 py-4">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-            <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em] mb-4 border border-indigo-100/50 shadow-sm">{{ __('إدارة الفريق') }}</span>
+            <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-primary-50 text-primary-600 text-[10px] font-black uppercase tracking-[0.2em] mb-4 border border-primary-100/50 shadow-sm">{{ __('إدارة الفريق') }}</span>
             <h3 class="section-title !text-3xl !mb-0">{{ __('فريق المسوقين الخاص بك') }}</h3>
             <p class="section-subtitle !text-sm mt-2">{{ __('تابع أداء فريقك وعمولاتك غير المباشرة بكل دقة وفخامة.') }}</p>
         </div>
         <div class="bg-white/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-100 shadow-sm">
             <div class="flex items-center gap-3">
-                <div class="w-2 h-2 bg-accent-rose rounded-full animate-pulse"></div>
+                <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
                 <span class="text-[11px] font-black text-slate-900 uppercase tracking-widest">{{ __('عمولة الفريق الثابتة: 5%') }}</span>
             </div>
         </div>
@@ -85,11 +85,11 @@ new class extends Component {
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{{ __('المبيعات') }}</p>
                     <p class="text-xl font-black text-slate-900 tracking-tighter">{{ $member->stats->active_clients_count ?? 0 }}</p>
                 </div>
-                <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/30">
-                    <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">{{ __('ربحك') }}</p>
+                <div class="bg-primary-50/50 p-4 rounded-2xl border border-primary-100/30">
+                    <p class="text-[9px] font-black text-primary-600 uppercase tracking-widest mb-2">{{ __('ربحك') }}</p>
                     <div class="flex items-baseline gap-1">
-                        <p class="text-xl font-black text-emerald-600 tracking-tighter">{{ number_format(($member->stats->pending_commissions ?? 0) * 0.05, 2) }}</p>
-                        <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">ر.س</span>
+                        <p class="text-xl font-black text-primary-600 tracking-tighter">{{ number_format(($member->stats->pending_commissions ?? 0) * 0.05, 2) }}</p>
+                        <span class="text-[8px] font-black text-primary-400 uppercase tracking-widest">ر.س</span>
                     </div>
                 </div>
             </div>

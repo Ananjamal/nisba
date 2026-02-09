@@ -8,6 +8,7 @@ class Commission extends Model
 {
     protected $fillable = [
         'lead_id',
+        'user_id',
         'amount',
         'status',
         'paid_at',
@@ -16,5 +17,10 @@ class Commission extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

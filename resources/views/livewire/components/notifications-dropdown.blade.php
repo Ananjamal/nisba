@@ -34,7 +34,7 @@
                 class="w-full text-right p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 relative group">
                 <div class="flex items-start gap-4">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 
-                            @if(($notification->data['icon'] ?? '') == 'success') bg-emerald-100 text-emerald-600
+                            @if(($notification->data['icon'] ?? '') == 'success') bg-primary-100 text-primary-600
                             @elseif(($notification->data['icon'] ?? '') == 'error') bg-rose-100 text-rose-600
                             @elseif(($notification->data['icon'] ?? '') == 'warning') bg-amber-100 text-amber-600
                             @elseif(($notification->data['icon'] ?? '') == 'lead') bg-cyber-100 text-cyber-600

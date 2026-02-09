@@ -76,7 +76,7 @@ new class extends Component {
                         setTimeout(() => copied = false, 2000);
                     "
                     class="copy-btn"
-                    :class="{ '!bg-green-600': copied }">
+                    :class="{ '!bg-primary-600': copied }">
                     <span x-show="!copied">نسخ</span>
                     <span x-show="copied" x-cloak>✓</span>
                 </button>
