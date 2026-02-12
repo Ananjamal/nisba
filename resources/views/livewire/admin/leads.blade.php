@@ -182,7 +182,7 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public function openViewModal($id)
     {
-        $this->viewLead = Lead::with('user')->findOrFail($id);
+        $this->viewLead = Lead::with(['user', 'users'])->findOrFail($id);
         $this->showViewModal = true;
     }
 
@@ -247,7 +247,7 @@ new #[Layout('layouts.admin')] class extends Component {
                         class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all duration-300 shadow-sm"
                         title="تصدير Excel">
                         <svg class="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </a>
                     <a href="{{ route('admin.reports.export.pdf', ['search' => $search, 'status' => $status_filter, 'sector' => $sector_filter, 'affiliate' => $affiliate_filter]) }}"
@@ -255,7 +255,7 @@ new #[Layout('layouts.admin')] class extends Component {
                         class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
                         title="تصدير PDF">
                         <svg class="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z M12 11h4m-4 4h4m-4-8h4" />
                         </svg>
                     </a>
                     <button wire:click="openCreateModal" class="btn btn-primary">
@@ -702,7 +702,8 @@ new #[Layout('layouts.admin')] class extends Component {
     </div>
     <!-- Professional View Details Modal -->
     <template x-teleport="body">
-        <div x-show="showViewModal"
+        <div x-data="{ showViewModal: $wire.entangle('showViewModal') }"
+            x-show="showViewModal"
             x-on:keydown.escape.window="showViewModal = false"
             class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
             <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showViewModal = false"></div>

@@ -34,14 +34,14 @@
             @foreach($columns as $key => $visible)
             <label class="group flex items-center justify-between p-2.5 hover:bg-primary-50 rounded-xl cursor-pointer transition-all duration-200">
                 <div class="flex items-center gap-3">
-                    <div class="relative flex items-center justify-center w-5 h-5 rounded-md border-2 transition-all duration-200 {{ $visible ? 'bg-primary-600 border-primary-600' : 'bg-white border-gray-300 group-hover:border-primary-400' }}">
+                    <div class="relative flex items-center justify-center w-5 h-5">
                         <input type="checkbox"
                             wire:click="toggleColumn('{{ $key }}')"
                             @if($visible) checked @endif
                             class="absolute opacity-0 w-full h-full cursor-pointer z-10">
                         @if($visible)
-                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
                         </svg>
                         @endif
                     </div>
