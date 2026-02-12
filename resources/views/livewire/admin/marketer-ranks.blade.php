@@ -5,18 +5,12 @@
             <p class="text-gray-500 mt-1">تحكم في رتب المسوقين ومضاعفات العمولة الخاصة بهم</p>
         </div>
         <div class="flex items-center gap-4">
-            <div class="bg-orange-50 p-3 rounded-2xl border border-orange-100 flex items-center gap-3">
-                <span class="text-2xl">🥉</span>
-                <span class="text-sm font-bold text-orange-800">برونزي: 1.0x</span>
+            @foreach($allRanks as $rank)
+            <div class="{{ str_replace('bg-', 'bg-opacity-50 bg-', $rank->color) }} p-3 rounded-2xl border flex items-center gap-3">
+                <span class="text-2xl">{{ $rank->icon }}</span>
+                <span class="text-sm font-bold">{{ $rank->getLabelAttribute() ?? $rank->name }}: {{ number_format($rank->commission_multiplier, 1) }}x</span>
             </div>
-            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center gap-3">
-                <span class="text-2xl">🥈</span>
-                <span class="text-sm font-bold text-gray-700">فضي: 1.2x</span>
-            </div>
-            <div class="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex items-center gap-3">
-                <span class="text-2xl">🥇</span>
-                <span class="text-sm font-bold text-blue-800">ذهبي: 1.5x</span>
-            </div>
+            @endforeach
         </div>
     </div>
 
@@ -42,9 +36,9 @@
                 </div>
                 <select wire:model.live="rank_filter" class="w-full appearance-none pl-4 pr-10 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all font-bold text-gray-700 hover:border-gray-300">
                     <option value="">جميع الرتب</option>
-                    <option value="bronze">برونزي</option>
-                    <option value="silver">فضي</option>
-                    <option value="gold">ذهبي</option>
+                    @foreach($allRanks as $rank)
+                    <option value="{{ $rank->name }}">{{ $rank->label }}</option>
+                    @endforeach
                 </select>
                 <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,9 +73,13 @@
                         </td>
                         <td class="py-5">
                             <div class="flex gap-2">
-                                <button wire:click="updateRank({{ $marketer->id }}, 'bronze')" class="p-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 {{ $marketer->rank === 'bronze' ? 'bg-orange-500 text-white shadow-orange-200' : 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100' }}">برونزي</button>
-                                <button wire:click="updateRank({{ $marketer->id }}, 'silver')" class="p-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 {{ $marketer->rank === 'silver' ? 'bg-gray-500 text-white shadow-gray-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100' }}">فضي</button>
-                                <button wire:click="updateRank({{ $marketer->id }}, 'gold')" class="p-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 {{ $marketer->rank === 'gold' ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100' }}">ذهبي</button>
+                                @foreach($allRanks as $rank)
+                                <button wire:click="updateRank({{ $marketer->id }}, '{{ $rank->name }}')"
+                                    class="p-1.5 px-3 rounded-xl text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 
+                                    {{ $marketer->rank === $rank->name ? str_replace('bg-', 'bg-opacity-100 bg-', $rank->color) . ' text-white' : str_replace(['text-', 'bg-'], ['text-opacity-80 text-', 'bg-opacity-50 bg-'], $rank->color) }}">
+                                    {{ $marketer->getRankLabel($rank->name) }}
+                                </button>
+                                @endforeach
                             </div>
                         </td>
                         <td class="py-5">
@@ -95,7 +93,7 @@
                             </div>
                         </td>
                         <td class="py-5 text-left">
-                            <a href="{{ route('admin.affiliates.show', $marketer->id) }}"  title="عرض التفاصيل">
+                            <a href="{{ route('admin.affiliates.show', $marketer->id) }}" title="عرض التفاصيل">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

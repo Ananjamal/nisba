@@ -53,6 +53,7 @@ class DaftraService
                         'external_system' => 'daftra',
                         'external_invoice_id' => 'DFT-' . rand(1000, 9999),
                         'commission_amount' => $item['deal_value'] * 0.15, // 15% commission
+                        'expected_deal_value' => $item['deal_value'],
                         'notes' => 'تمت المزامنة آلياً وتحقق الدفع من منصة دفترة'
                     ]
                 );

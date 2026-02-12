@@ -47,7 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Admin Routes
-Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin|employee'])->prefix('admin')->group(function () {
     Volt::route('/', 'admin.dashboard')->name('admin.dashboard');
     Volt::route('/leads', 'admin.leads')->name('admin.leads');
     Volt::route('/leads/{lead}', 'admin.leads-show')->name('admin.leads.show');

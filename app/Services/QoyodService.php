@@ -56,6 +56,7 @@ class QoyodService
                         'external_system' => 'qoyod',
                         'external_invoice_id' => 'INV-' . rand(1000, 9999),
                         'commission_amount' => $item['deal_value'] * 0.10, // 10% commission
+                        'expected_deal_value' => $item['deal_value'],
                         'notes' => 'تمت المزامنة آلياً وتحقق الدفع من منصة قيود'
                     ]
                 );

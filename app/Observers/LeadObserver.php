@@ -35,61 +35,80 @@ class LeadObserver
         if ($lead->isDirty('is_verified') && $lead->is_verified && $lead->status === 'sold') {
 
             // Default base commission if not set
-            $baseCommission = $lead->commission_amount ?: 500.00;
+            $baseCommissionTotal = $lead->commission_amount ?: 500.00;
+            $marketers = $lead->users;
+            $marketerCount = $marketers->count();
 
-            // Loop through all marketers assigned to this lead
-            foreach ($lead->users as $marketer) {
-                // Apply rank multiplier
-                $finalAmount = $baseCommission * $marketer->commission_multiplier;
+            if ($marketerCount > 0) {
+                foreach ($marketers as $marketer) {
+                    // Determine share
+                    $share = $marketer->pivot->commission_share;
+                    $fixed = $marketer->pivot->fixed_amount;
 
-                // Create commission record for this specific marketer
-                Commission::updateOrCreate(
-                    ['lead_id' => $lead->id, 'user_id' => $marketer->id],
-                    [
-                        'amount' => $finalAmount,
-                        'status' => 'pending',
-                    ]
-                );
+                    if ($fixed) {
+                        $individualBase = $fixed;
+                    } elseif ($share) {
+                        $individualBase = ($baseCommissionTotal * $share) / 100;
+                    } else {
+                        // Equal split if no share/fixed defined
+                        $individualBase = $baseCommissionTotal / $marketerCount;
+                    }
 
-                // Update Marketer Stats
-                $stats = $marketer->stats()->firstOrCreate([], [
-                    'clicks_count' => 0,
-                    'active_clients_count' => 0,
-                    'total_contracts_value' => 0,
-                    'pending_commissions' => 0
-                ]);
+                    // Apply rank multiplier
+                    $finalAmount = $individualBase * $marketer->commission_multiplier;
 
-                $stats->increment('active_clients_count');
-                $stats->increment('total_contracts_value', $finalAmount * 10); // Assume 10x is contract value
-                $stats->increment('pending_commissions', $finalAmount);
+                    // Create commission record for this specific marketer
+                    Commission::updateOrCreate(
+                        ['lead_id' => $lead->id, 'user_id' => $marketer->id],
+                        [
+                            'amount' => $finalAmount,
+                            'status' => 'pending',
+                        ]
+                    );
 
-                // Multi-tier Logic: If the marketer has a parent, give them a percentage (e.g. 5%)
-                if ($marketer->parent) {
-                    $parent = $marketer->parent;
-                    $parentBonus = $finalAmount * 0.05; // 5% bonus for the recruiter
-
-                    Commission::create([
-                        'lead_id' => $lead->id,
-                        'user_id' => $parent->id,
-                        'amount' => $parentBonus,
-                        'status' => 'pending',
-                    ]);
-
-                    $parentStats = $parent->stats()->firstOrCreate([], [
+                    // Update Marketer Stats
+                    $stats = $marketer->stats()->firstOrCreate([], [
                         'clicks_count' => 0,
                         'active_clients_count' => 0,
                         'total_contracts_value' => 0,
                         'pending_commissions' => 0
                     ]);
-                    $parentStats->increment('pending_commissions', $parentBonus);
-                }
 
-                // Notify Marketer via WhatsApp (Simulated)
-                if ($marketer->phone) {
-                    $this->whatsapp->sendMessage(
-                        $marketer->phone,
-                        "مبروك! تم تأكيد مبيعة جديدة للعميل {$lead->client_name}. عمولتك (بعد حساب الرتبة): {$finalAmount} ر.س. تفقد لوحة التحكم الخاصة بك."
-                    );
+                    $stats->increment('active_clients_count');
+                    $stats->increment('total_contracts_value', $finalAmount * 10); // Assume 10x is contract value
+                    $stats->increment('pending_commissions', $finalAmount);
+
+                    // Multi-tier Logic: If the marketer has a parent, give them a percentage (e.g. 5%)
+                    if ($marketer->parent) {
+                        $parent = $marketer->parent;
+                        $parentBonus = $finalAmount * 0.05; // 5% bonus for the recruiter
+
+                        Commission::create([
+                            'lead_id' => $lead->id,
+                            'user_id' => $parent->id,
+                            'amount' => $parentBonus,
+                            'status' => 'pending',
+                        ]);
+
+                        $parentStats = $parent->stats()->firstOrCreate([], [
+                            'clicks_count' => 0,
+                            'active_clients_count' => 0,
+                            'total_contracts_value' => 0,
+                            'pending_commissions' => 0
+                        ]);
+                        $parentStats->increment('pending_commissions', $parentBonus);
+                    }
+
+                    // Notify Marketer via WhatsApp (Simulated)
+                    if ($marketer->phone) {
+                        $this->whatsapp->sendMessage(
+                            $marketer->phone,
+                            "مبروك! تم تأكيد مبيعة جديدة للعميل {$lead->client_name}. نصيبك من العمولة (بعد المشاركة والرتبة): {$finalAmount} ر.س. تفقد لوحة التحكم الخاصة بك."
+                        );
+                    }
+
+                    // Check for Rank Upgrade
+                    $marketer->checkRankUpgrade();
                 }
             }
         }

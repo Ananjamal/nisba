@@ -46,6 +46,8 @@ new #[Layout('layouts.admin')] class extends Component {
     public $region = '';
     public $city = '';
     public $affiliate_ids = []; // Multiple affiliates
+    public $affiliate_shares = []; // [userId => percentage]
+    public $affiliate_fixed = []; // [userId => fixedAmount]
     public $recommended_systems = []; // Array of system IDs
 
     public function resetForm()
@@ -61,6 +63,8 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->region = '';
         $this->city = '';
         $this->affiliate_ids = [];
+        $this->affiliate_shares = [];
+        $this->affiliate_fixed = [];
         $this->recommended_systems = [];
         $this->resetValidation();
     }
@@ -85,6 +89,24 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->commission_type = $lead->commission_type;
         $this->commission_rate = $lead->commission_rate;
         $this->affiliate_ids = $lead->users->pluck('id')->toArray();
+
+        $this->affiliate_shares = [];
+        $this->affiliate_fixed = [];
+
+        $hasShares = false;
+        foreach ($lead->users as $u) {
+            $this->affiliate_shares[$u->id] = $u->pivot->commission_share;
+            $this->affiliate_fixed[$u->id] = $u->pivot->fixed_amount;
+            if ($u->pivot->commission_share > 0) {
+                $hasShares = true;
+            }
+        }
+
+        // If no shares are set (legacy data or manual clear), recalculate default shares
+        if (!$hasShares && !empty($this->affiliate_ids)) {
+            $this->updatedAffiliateIds($this->affiliate_ids);
+        }
+
         $this->recommended_systems = $lead->recommended_systems ?? [];
 
         $this->showCreateModal = true;
@@ -96,6 +118,45 @@ new #[Layout('layouts.admin')] class extends Component {
             $this->recommended_systems = array_diff($this->recommended_systems, [$systemId]);
         } else {
             $this->recommended_systems[] = $systemId;
+        }
+    }
+
+    public function updatedAffiliateIds($value)
+    {
+        // Ensure ids are integers and unique
+        $ids = collect($this->affiliate_ids)->map(fn($id) => (int)$id)->filter()->unique()->toArray();
+        $count = count($ids);
+
+        if ($count > 0) {
+            $baseShare = floor(10000 / $count) / 100; // 2 decimal places precision
+            $totalDistributed = $baseShare * $count;
+            $remainder = round(100 - $totalDistributed, 2);
+
+            $newShares = [];
+            foreach ($ids as $index => $id) {
+                // Add the remainder to the first marketer to ensure total is exactly 100%
+                $share = $baseShare + ($index === 0 ? $remainder : 0);
+                $newShares[$id] = round($share, 2);
+            }
+            $this->affiliate_shares = $newShares;
+        } else {
+            $this->affiliate_shares = [];
+        }
+    }
+
+    public function updatedCommissionType($value)
+    {
+        // Recalculate shares when commission type changes
+        if (!empty($this->affiliate_ids)) {
+            $this->updatedAffiliateIds($this->affiliate_ids);
+        }
+    }
+
+    public function updatedCommissionRate($value)
+    {
+        // Recalculate shares when commission rate changes
+        if (!empty($this->affiliate_ids)) {
+            $this->updatedAffiliateIds($this->affiliate_ids);
         }
     }
 
@@ -124,17 +185,25 @@ new #[Layout('layouts.admin')] class extends Component {
         ];
 
         // Determine affiliate IDs to sync
-        $affiliateIds = !empty($this->affiliate_ids) ? $this->affiliate_ids : [\Illuminate\Support\Facades\Auth::id()];
+        $affiliateIdsFull = !empty($this->affiliate_ids) ? $this->affiliate_ids : [\Illuminate\Support\Facades\Auth::id()];
+        $syncData = [];
+        foreach ($affiliateIdsFull as $id) {
+            $syncData[$id] = [
+                'commission_share' => $this->affiliate_shares[$id] ?? null,
+                'fixed_amount' => $this->affiliate_fixed[$id] ?? null,
+            ];
+        }
 
         if ($this->leadId) {
             $lead = Lead::findOrFail($this->leadId);
             $lead->update($data);
-            $lead->users()->sync($affiliateIds);
+            $lead->users()->sync($syncData);
             $message = 'تم تحديث بيانات العميل بنجاح!';
         } else {
             $data['status'] = 'under_review';
+            $data['user_id'] = \Illuminate\Support\Facades\Auth::id();
             $lead = Lead::create($data);
-            $lead->users()->sync($affiliateIds);
+            $lead->users()->sync($syncData);
             $message = 'تم إضافة العميل بنجاح!';
         }
 
@@ -471,18 +540,33 @@ new #[Layout('layouts.admin')] class extends Component {
 
                     <div class="border-t border-gray-200 pt-6 mt-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-4">المسوقين <span class="text-gray-400 text-xs">(يمكن اختيار أكثر من مسوق)</span></label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
                             @foreach($affiliates as $affiliate)
-                            <label class="flex items-center gap-3 p-3.5 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 border border-transparent hover:border-blue-300 hover:shadow-sm">
-                                <input type="checkbox"
-                                    wire:model="affiliate_ids"
-                                    value="{{ $affiliate->id }}"
-                                    class="w-5 h-5 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500 border-gray-300">
-                                <div class="flex-1">
-                                    <span class="text-sm font-bold text-gray-800 block">{{ $affiliate->name }}</span>
-                                    <span class="text-xs text-gray-500">{{ $affiliate->email }}</span>
+                            <div wire:key="marketer-share-{{ $affiliate->id }}" class="p-3.5 bg-white rounded-xl border {{ in_array($affiliate->id, $affiliate_ids) ? 'border-blue-300 shadow-sm' : 'border-gray-100' }} transition-all duration-200">
+                                <label class="flex items-center gap-3 cursor-pointer mb-3">
+                                    <input type="checkbox"
+                                        wire:model.live="affiliate_ids"
+                                        value="{{ $affiliate->id }}"
+                                        class="w-5 h-5 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500 border-gray-300">
+                                    <div class="flex-1">
+                                        <span class="text-sm font-bold text-gray-800 block">{{ $affiliate->name }}</span>
+                                        <span class="text-[10px] text-gray-500 uppercase font-black">{{ $affiliate->getRankLabel() }}</span>
+                                    </div>
+                                </label>
+
+                                @if(in_array($affiliate->id, $affiliate_ids))
+                                <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-50" x-transition>
+                                    <div>
+                                        <label class="text-[9px] font-black text-gray-400 block mb-1">النسبة (%)</label>
+                                        <input type="number" step="0.01" wire:model.blur="affiliate_shares.{{ $affiliate->id }}" placeholder="النسبة" class="w-full px-2 py-1.5 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] font-black text-gray-400 block mb-1">مبلغ ثابت (ريال)</label>
+                                        <input type="number" wire:model.blur="affiliate_fixed.{{ $affiliate->id }}" placeholder="مبلغ محدد" class="w-full px-2 py-1.5 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
+                                    </div>
                                 </div>
-                            </label>
+                                @endif
+                            </div>
                             @endforeach
                         </div>
                         <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
@@ -588,7 +672,28 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['affiliate'])
                         <td class="py-4">
                             @if($lead->users->count() > 0)
+                            @php
+                            $totalCommission = $lead->commission_type === 'fixed'
+                            ? $lead->commission_rate
+                            : ($lead->expected_deal_value * $lead->commission_rate / 100);
+                            @endphp
+
                             @foreach($lead->users as $marketer)
+                            @php
+                            $pivot = $marketer->pivot;
+                            if ($pivot->fixed_amount) {
+                            $baseShare = $pivot->fixed_amount;
+                            $shareLabel = number_format($pivot->fixed_amount) . ' ريال (ثابت)';
+                            } elseif ($pivot->commission_share) {
+                            $baseShare = ($totalCommission * $pivot->commission_share) / 100;
+                            $shareLabel = $pivot->commission_share . '%';
+                            } else {
+                            $baseShare = $totalCommission / $lead->users->count();
+                            $shareLabel = 'مقسم بالتساوي';
+                            }
+                            $finalShare = $baseShare * $marketer->commission_multiplier;
+                            @endphp
+
                             <div class="inline-flex flex-col gap-1 px-3 py-2 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold mb-2 mr-2 border border-primary-100 shadow-sm">
                                 <div class="flex items-center gap-2">
                                     <span>{{ $marketer->name }}</span>
@@ -596,6 +701,19 @@ new #[Layout('layouts.admin')] class extends Component {
                                         {{ $marketer->getRankIcon() }} {{ $marketer->getRankLabel() }}
                                     </span>
                                 </div>
+
+                                <!-- تفصيل العمولة -->
+                                <div class="flex items-center gap-2 text-[10px]">
+                                    <span class="bg-white px-1.5 py-0.5 rounded border border-primary-200 text-primary-600">
+                                        {{ $shareLabel }}
+                                    </span>
+                                    @if($lead->status === 'sold' && $lead->is_verified)
+                                    <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-black">
+                                        {{ number_format($finalShare, 2) }} ر.س
+                                    </span>
+                                    @endif
+                                </div>
+
                                 <div class="flex items-center gap-1 text-[10px] text-primary-500">
                                     <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

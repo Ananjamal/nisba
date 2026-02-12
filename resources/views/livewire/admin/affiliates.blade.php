@@ -14,7 +14,7 @@ new #[Layout('layouts.admin')] class extends Component {
     public $name = '';
     public $email = '';
     public $password = '';
-    public $role = 'affiliate';
+    public $selectedRoles = ['affiliate'];
     public $sector = '';
     public $sector_filter = '';
     public $showModal = false;
@@ -56,7 +56,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->email = '';
         $this->password = '';
         $this->sector = '';
-        $this->role = 'affiliate';
+        $this->selectedRoles = ['affiliate'];
         $this->resetValidation();
     }
 
@@ -73,7 +73,8 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->name = $user->name;
         $this->email = $user->email;
         $this->sector = $user->sector;
-        $this->role = $user->role ?: 'affiliate';
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
+        if (empty($this->selectedRoles)) $this->selectedRoles = ['affiliate'];
         $this->password = ''; // Don't show password
         $this->resetValidation();
         $this->showModal = true;
@@ -85,7 +86,8 @@ new #[Layout('layouts.admin')] class extends Component {
             'name' => 'required|min:3',
             'email' => 'required|email|unique:users,email,' . ($this->userId ?: 'NULL'),
             'password' => $this->userId ? 'nullable|min:8' : 'required|min:8',
-            'role' => 'required|in:admin,affiliate',
+            'selectedRoles' => 'required|array|min:1',
+            'selectedRoles.*' => 'exists:roles,name',
             'sector' => 'nullable|string|max:255',
         ]);
 
@@ -95,21 +97,19 @@ new #[Layout('layouts.admin')] class extends Component {
                 'name' => $this->name,
                 'email' => $this->email,
                 'sector' => $this->sector,
-                'role' => $this->role,
             ]);
             if ($this->password) {
                 $user->update(['password' => bcrypt($this->password)]);
             }
-            $user->syncRoles([$this->role]);
+            $user->syncRoles($this->selectedRoles);
         } else {
             $user = User::create([
                 'name' => $this->name,
                 'email' => $this->email,
                 'sector' => $this->sector,
-                'role' => $this->role,
                 'password' => bcrypt($this->password),
             ]);
-            $user->assignRole($this->role);
+            $user->assignRole($this->selectedRoles);
         }
 
         $this->showModal = false;
@@ -134,24 +134,26 @@ new #[Layout('layouts.admin')] class extends Component {
 
     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
         <x-table.filter-bar :statusOptions="[]">
-            <div class="relative w-full md:w-auto min-w-[160px] group">
-                <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+
+            <div class="relative w-full md:w-auto min-w-[180px] group">
+                <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                 </div>
-                <select wire:model.live="sector_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300 hover:text-gray-900">
-                    <option value="">كل القطاعات</option>
+                <select wire:model.live="sector_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
+                    <option value="">جميع القطاعات</option>
                     @foreach(['العقارات', 'التقنية والبرمجة', 'التسويق والدعاية', 'التجارة الإلكترونية', 'التعليم', 'الصحة', 'الخدمات المالية', 'المقاولات والبناء', 'المطاعم والكافيهات', 'أخرى'] as $sec)
                     <option value="{{ $sec }}">{{ $sec }}</option>
                     @endforeach
                 </select>
-                <div class="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-gray-400">
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
             </div>
+
             <x-slot name="actions">
                 <div class="flex gap-2">
                     <x-table.column-toggler :columns="$columns" :labels="[
@@ -176,28 +178,27 @@ new #[Layout('layouts.admin')] class extends Component {
         <div class="overflow-x-auto">
             <table class="w-full text-right">
                 <thead>
-                    <thead>
-                        <tr class="text-primary-400 text-sm border-b border-primary-50">
-                            @if($columns['marketer'])
-                            <x-table.th field="name" :sortField="$sortField" :sortDirection="$sortDirection" label="المسوق" />
-                            @endif
-                            @if($columns['sector'])
-                            <x-table.th field="sector" :sortField="$sortField" :sortDirection="$sortDirection" label="القطاع" />
-                            @endif
-                            @if($columns['email'])
-                            <x-table.th field="email" :sortField="$sortField" :sortDirection="$sortDirection" label="البريد الإلكتروني" />
-                            @endif
-                            @if($columns['joined_at'])
-                            <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ التسجيل" />
-                            @endif
-                            @if($columns['status'])
-                            <x-table.th field="status" :sortField="$sortField" :sortDirection="$sortDirection" label="الحالة" />
-                            @endif
-                            @if($columns['actions'])
-                            <th class="pb-4 font-bold text-left">العمليات</th>
-                            @endif
-                        </tr>
-                    </thead>
+                    <tr class="text-primary-400 text-sm border-b border-primary-50">
+                        @if($columns['marketer'])
+                        <x-table.th field="name" :sortField="$sortField" :sortDirection="$sortDirection" label="المسوق" />
+                        @endif
+                        @if($columns['sector'])
+                        <x-table.th field="sector" :sortField="$sortField" :sortDirection="$sortDirection" label="القطاع" />
+                        @endif
+                        @if($columns['email'])
+                        <x-table.th field="email" :sortField="$sortField" :sortDirection="$sortDirection" label="البريد الإلكتروني" />
+                        @endif
+                        @if($columns['joined_at'])
+                        <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ التسجيل" />
+                        @endif
+                        @if($columns['status'])
+                        <x-table.th field="status" :sortField="$sortField" :sortDirection="$sortDirection" label="الحالة" />
+                        @endif
+                        @if($columns['actions'])
+                        <th class="pb-4 font-bold text-left">العمليات</th>
+                        @endif
+                    </tr>
+                </thead>
                 <tbody class="divide-y divide-primary-50">
                     @foreach($users as $user)
                     <tr class="group hover:bg-gray-50 transition-colors duration-200">
@@ -241,7 +242,7 @@ new #[Layout('layouts.admin')] class extends Component {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
                                 </button>
-                                <button wire:confirm="هل أنت متأكد من حذف هذا المستخدم؟" wire:click="deleteUser({{ $user->id }})" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-300" title="حذف">
+                                <button wire:click="$set('deletingId', {{ $user->id }}); $set('showDeleteModal', true)" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-300" title="حذف">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
@@ -249,7 +250,6 @@ new #[Layout('layouts.admin')] class extends Component {
                             </div>
                         </td>
                         @endif
-                    </tr>
                     </tr>
                     @endforeach
                 </tbody>
@@ -261,93 +261,116 @@ new #[Layout('layouts.admin')] class extends Component {
     </div>
 
     <!-- Create/Edit User Modal -->
-    <template x-teleport="body">
-        <div x-show="showModal"
-            x-on:keydown.escape.window="showModal = false"
-            class="fixed inset-0 z-[1000] overflow-y-auto" style="display: none;">
-            <div class="fixed inset-0 bg-primary-950/60 backdrop-blur-md transition-opacity" @click="showModal = false"></div>
+    <div x-data="{ show: @entangle('showModal') }"
+        x-show="show"
+        x-on:keydown.escape.window="show = false"
+        class="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto"
+        style="display: none;">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity"
+            @click="show = false"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"></div>
 
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-lg transform overflow-hidden rounded-[2.5rem] bg-white p-10 shadow-2xl transition-all"
-                    @click.away="showModal = false">
-                    <div class="absolute top-4 right-4">
-                        <button @click="showModal = false" class="text-slate-400 hover:text-slate-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
+        <!-- Modal Container -->
+        <div class="relative bg-white rounded-2xl w-full max-w-lg shadow-2xl mt-4 mb-6 flex flex-col border-2 border-gray-200"
+            @click.away="show = false"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100">
 
-                    <div class="mb-6 text-center">
-                        <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-black text-primary-900">{{ $userId ? __('تعديل بيانات المسوق') : __('إضافة مسوق جديد') }}</h3>
-                    </div>
-
-                    <form wire:submit="saveUser" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-primary-900 mb-2">{{ __('الاسم الكامل') }}</label>
-                            <input type="text" wire:model="name" class="w-full rounded-xl border-primary-200 focus:border-primary-500 focus:ring-primary-500 font-bold text-primary-900" placeholder="{{ __('اسم المسوق') }}">
-                            @error('name') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-primary-900 mb-2">{{ __('البريد الإلكتروني') }}</label>
-                            <input type="email" wire:model="email" class="w-full rounded-xl border-primary-200 focus:border-primary-500 focus:ring-primary-500 font-bold text-primary-900" placeholder="email@example.com">
-                            @error('email') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-primary-900 mb-2">{{ __('المجال / القطاع') }}</label>
-                            <select wire:model="sector" class="w-full rounded-xl border-primary-200 focus:border-primary-500 focus:ring-primary-500 font-bold text-primary-900">
-                                <option value="">اختر القطاع</option>
-                                <option value="العقارات">العقارات</option>
-                                <option value="التقنية والبرمجة">التقنية والبرمجة</option>
-                                <option value="التسويق والدعاية">التسويق والدعاية</option>
-                                <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
-                                <option value="التعليم">التعليم</option>
-                                <option value="الصحة">الصحة</option>
-                                <option value="الخدمات المالية">الخدمات المالية</option>
-                                <option value="المقاولات والبناء">المقاولات والبناء</option>
-                                <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
-                                <option value="أخرى">أخرى</option>
-                            </select>
-                            @error('sector') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-primary-900 mb-2">{{ __('كلمة المرور') }} <span class="text-xs text-gray-400 font-normal">{{ $userId ? __('(اتركها فارغة لعدم التغيير)') : '' }}</span></label>
-                            <input type="password" wire:model="password" class="w-full rounded-xl border-primary-200 focus:border-primary-500 focus:ring-primary-500 font-bold text-primary-900" placeholder="********">
-                            @error('password') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-primary-900 mb-2">{{ __('الصلاحية / الرتبة') }}</label>
-                            <select wire:model="role" class="w-full rounded-xl border-primary-200 focus:border-primary-500 focus:ring-primary-500 font-bold text-primary-900">
-                                <option value="affiliate">مسوق (Affiliate)</option>
-                                <option value="admin">مدير (Admin)</option>
-                            </select>
-                            @error('role') <span class="text-xs text-red-500 font-bold mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <button type="submit" class="w-full btn btn-primary">
-                            <span wire:loading.remove>{{ $userId ? __('حفظ التغييرات') : __('إنشاء الحساب') }}</span>
-                            <span wire:loading class="flex items-center justify-center gap-2">
-                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                {{ __('جاري المعالجة...') }}
-                            </span>
-                        </button>
-                    </form>
+            <!-- Header - Soft and Clean -->
+            <div class="bg-gradient-to-b from-gray-50 to-white px-8 py-6 flex justify-between items-center flex-shrink-0 border-b border-gray-200">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">{{ $userId ? __('تعديل بيانات المسوق') : __('إضافة مسوق جديد') }}</h3>
+                    <p class="text-gray-500 text-sm mt-1.5">{{ __('أدخل معلومات المسوق للبدء') }}</p>
                 </div>
+                <button @click="show = false"
+                    class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2.5 rounded-xl transition-all duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
+
+            <!-- Modal Content -->
+            <form wire:submit="saveUser" class="flex flex-col flex-1">
+                <div class="p-8 space-y-6 overflow-y-auto bg-white flex-1">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">{{ __('الاسم الكامل') }}</label>
+                        <input type="text" wire:model="name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">{{ __('البريد الإلكتروني') }}</label>
+                        <input type="email" wire:model="email" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">{{ __('المجال / القطاع') }}</label>
+                        <select wire:model="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            <option value="">اختر القطاع</option>
+                            <option value="العقارات">العقارات</option>
+                            <option value="التقنية والبرمجة">التقنية والبرمجة</option>
+                            <option value="التسويق والدعاية">التسويق والدعاية</option>
+                            <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
+                            <option value="التعليم">التعليم</option>
+                            <option value="الصحة">الصحة</option>
+                            <option value="الخدمات المالية">الخدمات المالية</option>
+                            <option value="المقاولات والبناء">المقاولات والبناء</option>
+                            <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                        @error('sector') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">{{ __('كلمة المرور') }} <span class="text-xs text-gray-400 font-normal">{{ $userId ? __('(اتركها فارغة لعدم التغيير)') : '' }}</span></label>
+                        <input type="password" wire:model="password" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">{{ __('الأدوار الوظيفية') }} <span class="text-red-500">*</span></label>
+                        <div class="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            @foreach(\Spatie\Permission\Models\Role::all() as $r)
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" wire:model="selectedRoles" value="{{ $r->name }}"
+                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-all bg-white">
+                                <span class="font-bold text-gray-700 text-sm group-hover:text-gray-900 transition-colors">
+                                    {{ $r->name }}
+                                </span>
+                            </label>
+                            @endforeach
+                        </div>
+                        @error('selectedRoles') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                    <button type="button" @click="show = false"
+                        class="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 font-semibold transition-all duration-200 flex items-center gap-2">
+                        إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <span wire:loading.remove>{{ $userId ? __('حفظ التغييرات') : __('إنشاء الحساب') }}</span>
+                        <span wire:loading class="flex items-center justify-center gap-2">
+                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {{ __('جاري المعالجة...') }}
+                        </span>
+                    </button>
+                </div>
+            </form>
         </div>
-    </template>
+    </div>
+
 
     <!-- Professional Delete Confirmation Modal -->
     <template x-teleport="body">

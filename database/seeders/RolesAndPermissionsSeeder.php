@@ -13,74 +13,54 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create Permissions
-        // Dashboard
-        // Create Permissions
-        // Dashboard
-        Permission::firstOrCreate(['name' => 'view dashboard']);
+        // Permission Groups Definition
+        $groups = [
+            'Dashboard' => ['view dashboard'],
+            'Sales' => ['view customers', 'create customers', 'edit customers', 'delete customers', 'export customers'],
+            'Marketers' => ['view marketers', 'create marketers', 'edit marketers', 'delete marketers', 'approve marketers'],
+            'Withdrawals' => [
+                'view withdrawals',
+                'approve withdrawals',
+                'finance approve withdrawals',
+                'admin approve withdrawals',
+                'reject withdrawals'
+            ],
+            'Commissions' => ['view commissions', 'manage commissions'],
+            'Reports' => ['view reports', 'export reports'],
+            'Users Management' => ['manage staff', 'manage roles'],
+            'Settings' => ['manage settings'],
+            'Widgets' => [
+                'view sales widget',
+                'view performance widget',
+                'view withdrawals widget',
+                'view marketers widget',
+                'view sectors widget',
+                'view recent leads widget'
+            ],
+        ];
 
-        // Customers
-        Permission::firstOrCreate(['name' => 'view customers']);
-        Permission::firstOrCreate(['name' => 'create customers']);
-        Permission::firstOrCreate(['name' => 'edit customers']);
-        Permission::firstOrCreate(['name' => 'delete customers']);
-        Permission::firstOrCreate(['name' => 'export customers']);
-
-        // Marketers
-        Permission::firstOrCreate(['name' => 'view marketers']);
-        Permission::firstOrCreate(['name' => 'create marketers']);
-        Permission::firstOrCreate(['name' => 'edit marketers']);
-        Permission::firstOrCreate(['name' => 'delete marketers']);
-        Permission::firstOrCreate(['name' => 'approve marketers']);
-
-        // Withdrawals
-        Permission::firstOrCreate(['name' => 'view withdrawals']);
-        Permission::firstOrCreate(['name' => 'approve withdrawals']);
-        Permission::firstOrCreate(['name' => 'reject withdrawals']);
-
-        // Reports
-        Permission::firstOrCreate(['name' => 'view reports']);
-        Permission::firstOrCreate(['name' => 'export reports']);
-
-        // Settings & System
-        Permission::firstOrCreate(['name' => 'manage settings']);
-        Permission::firstOrCreate(['name' => 'manage roles']);
-        Permission::firstOrCreate(['name' => 'manage staff']);
+        foreach ($groups as $group => $permissions) {
+            foreach ($permissions as $permissionName) {
+                Permission::firstOrCreate(['name' => $permissionName])
+                    ->update(['group' => $group]);
+            }
+        }
 
         // Create Roles and Assign Permissions
-
         // Super Admin
-        $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
-        // Super Admin gets all permissions via Gate::before rule or just implicitly
+        Role::firstOrCreate(['name' => 'super-admin']);
 
         // Admin
         $admin = Role::firstOrCreate(['name' => 'admin']);
-        $admin->givePermissionTo([
-            'view dashboard',
-            'view customers',
-            'create customers',
-            'edit customers',
-            'view marketers',
-            'edit marketers',
-            'approve marketers',
-            'view withdrawals',
-            'approve withdrawals',
-            'reject withdrawals',
-            'view reports',
-            'export reports',
-            'manage roles',
-            'manage staff',
-        ]);
+        $admin->syncPermissions(Permission::whereNotIn('name', ['super-admin'])->get()); // Give all
 
         // Affiliate (Marketer)
         $affiliate = Role::firstOrCreate(['name' => 'affiliate']);
-        $affiliate->givePermissionTo([
-            'view dashboard',
-        ]);
+        $affiliate->syncPermissions(['view dashboard']);
 
         // Employee (Standard Staff)
         $employee = Role::firstOrCreate(['name' => 'employee']);
-        $employee->givePermissionTo([
+        $employee->syncPermissions([
             'view dashboard',
             'view customers',
             'view marketers',

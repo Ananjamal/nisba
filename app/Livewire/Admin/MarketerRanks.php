@@ -15,20 +15,27 @@ class MarketerRanks extends Component
 
     protected $updatesQueryString = ['search', 'rank_filter'];
 
-    public function updateRank($userId, $rank)
+    public function updateRank($userId, $rankName)
     {
         $user = User::findOrFail($userId);
-        $user->update(['rank' => $rank]);
+        $oldRank = $user->rank;
+        $rankConfig = \App\Models\Rank::where('name', $rankName)->first();
 
-        // Auto-set default multipliers based on rank if not manually overridden
-        $this->updateMultiplier($userId, match ($rank) {
-            'bronze' => 1.00,
-            'silver' => 1.20,
-            'gold' => 1.50,
-            default => 1.00
-        });
+        if ($rankConfig) {
+            $user->update([
+                'rank' => $rankName,
+                'commission_multiplier' => $rankConfig->commission_multiplier
+            ]);
 
-        session()->flash('message', 'تم تحديث رتبة المسوق ' . $user->name . ' بنجاح');
+            \App\Models\RankHistory::create([
+                'user_id' => $user->id,
+                'old_rank' => $oldRank,
+                'new_rank' => $rankName,
+                'reason' => 'تحديث يدوي من قبل المسؤول',
+            ]);
+
+            session()->flash('message', 'تم تحديث رتبة المسوق ' . $user->name . ' بنجاح');
+        }
     }
 
     public function updateMultiplier($userId, $multiplier)
@@ -51,7 +58,8 @@ class MarketerRanks extends Component
             ->paginate(15);
 
         return view('livewire.admin.marketer-ranks', [
-            'marketers' => $marketers
+            'marketers' => $marketers,
+            'allRanks' => \App\Models\Rank::all()
         ])->layout('layouts.admin');
     }
 }

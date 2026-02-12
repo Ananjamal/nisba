@@ -6,11 +6,10 @@ use App\Models\WithdrawalRequest;
 new class extends Component {
     use \Livewire\WithFileUploads;
 
+    public $amount = '';
     public $iban = '';
     public $bank_name = '';
     public $account_holder_name = '';
-    public $lead_id = '';
-    public $invoice;
     public $iban_proof;
     public $showRequestModal = false;
 
@@ -31,47 +30,34 @@ new class extends Component {
         return [
             'stats' => $user->stats,
             'requests' => $user->withdrawalRequests()->latest()->get(),
-            'availableLeads' => $user->leads()->where('status', 'sold')->where('is_verified', true)->get(),
         ];
     }
 
     public function requestPayout()
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $availableBalance = $user->stats->pending_commissions ?? 0;
+
         $this->validate([
+            'amount' => 'required|numeric|min:50|max:' . $availableBalance,
             'iban' => 'required|min:15',
             'bank_name' => 'required|min:3',
             'account_holder_name' => 'required|min:3',
-            'lead_id' => 'required|exists:leads,id',
-            'invoice' => 'required|file|max:5120', // 5MB max
             'iban_proof' => 'required|image|max:5120', // 5MB max
+        ], [
+            'amount.max' => 'المبلغ المطلوب أكبر من الرصيد المتاح (' . $availableBalance . ' ر.س)',
+            'amount.min' => 'الحد الأدنى للسحب هو 50 ر.س'
         ]);
 
-        $lead = \App\Models\Lead::findOrFail($this->lead_id);
-
-        // Find the specific commission amount for this lead and user
-        $commission = \App\Models\Commission::where('lead_id', $this->lead_id)
-            ->where('user_id', auth()->id())
-            ->where('status', 'pending')
-            ->first();
-
-        if (!$commission) {
-            $this->dispatch('toast', type: 'error', message: 'لا توجد عمولة معلقة لهذا العميل');
-            return;
-        }
-
         // Store files
-        $invoicePath = $this->invoice->store('withdrawals/invoices', 'public');
         $ibanProofPath = $this->iban_proof->store('withdrawals/iban_proofs', 'public');
 
-        $withdrawalRequest = auth()->user()->withdrawalRequests()->create([
-            'lead_id' => $this->lead_id,
-            'amount' => $commission->amount,
+        $withdrawalRequest = $user->withdrawalRequests()->create([
+            'amount' => $this->amount,
             'iban' => $this->iban,
             'bank_name' => $this->bank_name,
             'account_holder_name' => $this->account_holder_name,
-            'client_name' => $lead->client_name,
-            'company_name' => $lead->company_name,
-            'invoice_url' => $invoicePath,
             'iban_proof_url' => $ibanProofPath,
             'status' => 'pending',
         ]);
@@ -82,7 +68,7 @@ new class extends Component {
             $admin->notify(new \App\Notifications\WithdrawalRequestNotification($withdrawalRequest));
         }
 
-        $this->reset(['showRequestModal', 'lead_id', 'invoice', 'iban_proof']);
+        $this->reset(['showRequestModal', 'amount', 'iban_proof']);
         $this->dispatch('payout-requested');
         $this->dispatch('toast', type: 'success', message: 'تم تقديم طلب السحب بنجاح!');
     }
@@ -226,37 +212,21 @@ new class extends Component {
 
                     <!-- Modal Body -->
                     <form wire:submit.prevent="requestPayout" class="p-6 space-y-4">
-                        <div class="form-group">
-                            <label class="form-label font-bold">اختر العميل المعمد</label>
-                            <select wire:model.live="lead_id" class="form-input">
-                                <option value="">--- اختر العميل ---</option>
-                                @foreach($availableLeads as $lead)
-                                <option value="{{ $lead->id }}">{{ $lead->client_name }} ({{ $lead->company_name }})</option>
-                                @endforeach
-                            </select>
-                            @error('lead_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        <div class="text-center p-4 bg-primary-50 rounded-xl border border-primary-100 mb-4">
+                            <p class="text-xs text-secondary mb-1">الرصيد الكلي المتاح للسحب</p>
+                            <p class="text-3xl font-bold text-primary-900">{{ number_format($stats->pending_commissions ?? 0, 2) }} <span class="text-sm font-normal">ر.س</span></p>
                         </div>
 
-                        @if($lead_id)
-                        @php
-                        $selectedCommission = \App\Models\Commission::where('lead_id', $lead_id)
-                        ->where('user_id', auth()->id())
-                        ->where('status', 'pending')
-                        ->first();
-                        @endphp
-                        <div class="text-center p-4 bg-primary-50 rounded-xl border border-primary-100">
-                            <p class="text-[10px] text-primary-600 font-bold uppercase tracking-wider mb-1">العمولة المتاحة لهذا العميل</p>
-                            <p class="text-3xl font-black text-primary-700">
-                                {{ $selectedCommission ? number_format($selectedCommission->amount, 2) : '0.00' }}
-                                <span class="text-sm font-normal">ريس</span>
-                            </p>
+                        <div class="form-group">
+                            <label class="form-label font-bold">المبلغ المطلوب سحبه</label>
+                            <div class="relative">
+                                <input type="number" wire:model="amount" step="0.01" class="form-input pl-16" placeholder="0.00">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">ر.س</span>
+                                </div>
+                            </div>
+                            @error('amount') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
-                        @else
-                        <div class="text-center p-4 bg-yellow-50 rounded-lg mb-4">
-                            <p class="text-xs text-secondary mb-1">الرصيد الكلي المتاح (تقريبي)</p>
-                            <p class="text-3xl font-bold text-primary-900">{{ number_format($stats->pending_commissions ?? 0, 2) }} <span class="text-sm font-normal">ريس</span></p>
-                        </div>
-                        @endif
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group">
@@ -278,42 +248,22 @@ new class extends Component {
                             @error('iban') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="form-group">
-                                <label class="form-label font-bold text-xs">رفع الفاتورة (PDF/Image)</label>
-                                <div class="relative">
-                                    <input type="file" wire:model="invoice" class="hidden" id="invoice_upload">
-                                    <label for="invoice_upload" class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary-500 cursor-pointer bg-gray-50 transition-all">
-                                        @if($invoice)
-                                        <span class="text-[10px] font-bold text-success-600">تم اختيار الملف</span>
-                                        @else
-                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                        <span class="text-[10px] text-gray-500 mt-1">اختر ملف</span>
-                                        @endif
-                                    </label>
-                                </div>
-                                @error('invoice') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
+                        <div class="form-group">
+                            <label class="form-label font-bold text-xs">إثبات الآيبان (Image)</label>
+                            <div class="relative">
+                                <input type="file" wire:model="iban_proof" class="hidden" id="iban_proof_upload">
+                                <label for="iban_proof_upload" class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary-500 cursor-pointer bg-gray-50 transition-all">
+                                    @if($iban_proof)
+                                    <span class="text-[10px] font-bold text-success-600">تم اختيار الصورة</span>
+                                    @else
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span class="text-[10px] text-gray-500 mt-1">اختر صورة</span>
+                                    @endif
+                                </label>
                             </div>
-
-                            <div class="form-group">
-                                <label class="form-label font-bold text-xs">إثبات الآيبان (Image)</label>
-                                <div class="relative">
-                                    <input type="file" wire:model="iban_proof" class="hidden" id="iban_proof_upload">
-                                    <label for="iban_proof_upload" class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary-500 cursor-pointer bg-gray-50 transition-all">
-                                        @if($iban_proof)
-                                        <span class="text-[10px] font-bold text-success-600">تم اختيار الصورة</span>
-                                        @else
-                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span class="text-[10px] text-gray-500 mt-1">اختر صورة</span>
-                                        @endif
-                                    </label>
-                                </div>
-                                @error('iban_proof') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
-                            </div>
+                            @error('iban_proof') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Modal Footer -->

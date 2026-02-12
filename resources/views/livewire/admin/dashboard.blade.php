@@ -97,7 +97,8 @@ new #[Layout('layouts.admin')] class extends Component {
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stagger-slide-up">
         <!-- Total Leads -->
-        @can('view customers')
+        <!-- Sales Widgets -->
+        @can('view sales widget')
         <a href="{{ route('admin.leads') }}" class="block">
             <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
                 <div class="flex items-center justify-between mb-4">
@@ -117,10 +118,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 <p class="text-xs text-primary-500 mt-2">جميع العملاء المسجلين</p>
             </div>
         </a>
-        @endcan
 
-        <!-- Pending Leads -->
-        @can('view customers')
         <a href="{{ route('admin.leads', ['status' => 'under_review']) }}" class="block">
             <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
                 <div class="flex items-center justify-between mb-4">
@@ -140,10 +138,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 <p class="text-xs text-primary-500 mt-2">يتطلب اتخاذ إجراء</p>
             </div>
         </a>
-        @endcan
 
-        <!-- Sold Leads -->
-        @can('view customers')
         <a href="{{ route('admin.leads', ['status' => 'sold']) }}" class="block">
             <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
                 <div class="flex items-center justify-between mb-4">
@@ -166,7 +161,7 @@ new #[Layout('layouts.admin')] class extends Component {
         @endcan
 
         <!-- Total Affiliates -->
-        @can('view marketers')
+        @can('view marketers widget')
         <a href="{{ route('admin.affiliates') }}" class="block">
             <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
                 <div class="flex items-center justify-between mb-4">
@@ -189,10 +184,31 @@ new #[Layout('layouts.admin')] class extends Component {
         @endcan
     </div>
 
+    <!-- Performance Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        @can('view sales widget')
+        <livewire:components.dashboard-chart
+            chartId="sales-trend"
+            type="sales"
+            period="month"
+            title="اتجاهات المبيعات"
+            :key="'sales-chart-'.now()->timestamp" />
+        @endcan
+
+        @can('view performance widget')
+        <livewire:components.dashboard-chart
+            chartId="revenue-performance"
+            type="revenue"
+            period="month"
+            title="أداء الإيرادات"
+            :key="'revenue-chart-'.now()->timestamp" />
+        @endcan
+    </div>
+
     <!-- Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- New Widget: Leads by Status -->
-        @can('view customers')
+        @can('view sales widget')
         <div class="card card-hover">
             <div class="card-header">
                 <h3 class="text-lg font-bold text-primary-900">حالات العملاء</h3>
@@ -245,7 +261,7 @@ new #[Layout('layouts.admin')] class extends Component {
         @endcan
 
         <!-- New Widget: Marketers by Rank -->
-        @can('view marketers')
+        @can('view marketers widget')
         <div class="card card-hover">
             <div class="card-header flex justify-between items-center">
                 <div>
@@ -298,7 +314,7 @@ new #[Layout('layouts.admin')] class extends Component {
         @endcan
 
         <!-- New Widget: Top Sectors -->
-        @can('view customers')
+        @can('view sectors widget')
         <div class="card card-hover">
             <div class="card-header">
                 <h3 class="text-lg font-bold text-primary-900">أبزر القطاعات</h3>
@@ -327,7 +343,7 @@ new #[Layout('layouts.admin')] class extends Component {
         @endcan
 
         <!-- Recent Leads -->
-        @can('view customers')
+        @can('view recent leads widget')
         <div class="card card-hover">
             <div class="card-header">
                 <h3 class="text-lg font-bold text-primary-900">العملاء المضافون مؤخراً</h3>

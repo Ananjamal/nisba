@@ -92,29 +92,31 @@ class User extends Authenticatable
         return $this->hasMany(WithdrawalRequest::class);
     }
 
+    public function rankHistories()
+    {
+        return $this->hasMany(RankHistory::class);
+    }
+
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin') || $this->hasRole('super-admin');
     }
 
     public function isAffiliate()
     {
-        return $this->role === 'affiliate';
+        return $this->hasRole('affiliate');
     }
 
     public function getRankBadgeColor()
     {
-        return match ($this->rank) {
-            'bronze' => 'bg-orange-100 text-orange-700 border-orange-200',
-            'silver' => 'bg-gray-100 text-gray-700 border-gray-200',
-            'gold' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
-            default => 'bg-gray-100 text-gray-700 border-gray-200',
-        };
+        $rankConfig = Rank::where('name', $this->rank)->first();
+        return $rankConfig?->color ?? 'bg-gray-100 text-gray-700 border-gray-200';
     }
 
-    public function getRankLabel()
+    public function getRankLabel($rankName = null)
     {
-        return match ($this->rank) {
+        $rank = $rankName ?? $this->rank;
+        return match ($rank) {
             'bronze' => 'برونزي',
             'silver' => 'فضي',
             'gold' => 'ذهبي',
@@ -124,11 +126,41 @@ class User extends Authenticatable
 
     public function getRankIcon()
     {
-        return match ($this->rank) {
-            'bronze' => '🥉',
-            'silver' => '🥈',
-            'gold' => '🥇',
-            default => '🥉',
-        };
+        $rankConfig = Rank::where('name', $this->rank)->first();
+        return $rankConfig?->icon ?? '🥉';
+    }
+
+    public function checkRankUpgrade()
+    {
+        if ($this->role !== 'affiliate') return;
+
+        $stats = $this->stats;
+        if (!$stats) return;
+
+        $totalSales = $this->leads()->where('leads.status', 'sold')->count();
+        $totalRevenue = $this->leads()->where('leads.status', 'sold')->sum('expected_deal_value');
+
+        $nextRank = Rank::where(function ($query) use ($totalSales, $totalRevenue) {
+            $query->where('min_sales_count', '<=', $totalSales)
+                ->where('min_revenue', '<=', $totalRevenue);
+        })
+            ->orderByDesc('min_sales_count')
+            ->orderByDesc('min_revenue')
+            ->first();
+
+        if ($nextRank && $nextRank->name !== $this->rank) {
+            $oldRank = $this->rank;
+            $this->update([
+                'rank' => $nextRank->name,
+                'commission_multiplier' => $nextRank->commission_multiplier
+            ]);
+
+            RankHistory::create([
+                'user_id' => $this->id,
+                'old_rank' => $oldRank,
+                'new_rank' => $nextRank->name,
+                'reason' => 'ترقية تلقائية بناءً على الأداء (مبيعات: ' . $totalSales . '، قيمة: ' . $totalRevenue . ')',
+            ]);
+        }
     }
 }

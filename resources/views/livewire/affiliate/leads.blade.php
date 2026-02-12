@@ -42,6 +42,7 @@ new class extends Component {
             $message = 'تم تحديث بيانات العميل بنجاح!';
         } else {
             auth()->user()->leads()->create([
+                'user_id' => auth()->id(),
                 'client_name' => $this->client_name,
                 'company_name' => $this->company_name,
                 'city' => $this->city,
@@ -202,13 +203,83 @@ new class extends Component {
                     </td>
                     <td>{{ $lead->city }}</td>
                     <td>
-                        @if($lead->commission_type === 'fixed')
-                        <span class="font-bold text-green-600">{{ number_format($lead->commission_rate) }} ريال</span>
-                        @elseif($lead->commission_rate)
-                        <span class="font-bold text-primary-600">{{ $lead->commission_rate }}%</span>
-                        @else
-                        -
-                        @endif
+                        @php
+                        $userPivot = $lead->users->where('id', auth()->id())->first()?->pivot;
+                        $totalCommission = $lead->commission_type === 'fixed'
+                        ? $lead->commission_rate
+                        : ($lead->expected_deal_value * $lead->commission_rate / 100);
+
+                        // حساب نصيب المسوق
+                        if ($userPivot && $userPivot->fixed_amount) {
+                        $baseShare = $userPivot->fixed_amount;
+                        } elseif ($userPivot && $userPivot->commission_share) {
+                        $baseShare = ($totalCommission * $userPivot->commission_share) / 100;
+                        } else {
+                        $marketerCount = $lead->users->count();
+                        $baseShare = $marketerCount > 0 ? $totalCommission / $marketerCount : 0;
+                        }
+
+                        $finalShare = $baseShare * auth()->user()->commission_multiplier;
+                        $isShared = $lead->users->count() > 1;
+                        @endphp
+
+                        <div class="space-y-1">
+                            <!-- العمولة الإجمالية -->
+                            <div class="flex items-center gap-2">
+                                @if($lead->commission_type === 'fixed')
+                                <span class="font-bold text-green-600">{{ number_format($totalCommission) }} ريال</span>
+                                @elseif($lead->commission_rate)
+                                <span class="font-bold text-primary-600">{{ $lead->commission_rate }}%</span>
+                                @else
+                                <span class="text-gray-400">-</span>
+                                @endif
+
+                                @if($isShared)
+                                <svg class="w-4 h-4 text-amber-500" title="عمولة مشتركة مع {{ $lead->users->count() }} مسوقين" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                </svg>
+                                @endif
+                            </div>
+
+                            <!-- نصيب المسوق -->
+                            @if($lead->status === 'sold' && $lead->is_verified)
+                            <div class="bg-green-50 px-2 py-1 rounded-lg border border-green-200">
+                                <p class="text-[10px] text-green-600 font-bold">نصيبك:</p>
+                                <p class="text-sm font-black text-green-700">
+                                    {{ number_format($finalShare, 2) }} ريال
+                                </p>
+                                @if($isShared && $userPivot)
+                                <p class="text-[9px] text-green-500">
+                                    @if($userPivot->fixed_amount)
+                                    (مبلغ ثابت)
+                                    @elseif($userPivot->commission_share)
+                                    ({{ $userPivot->commission_share }}% من الإجمالي)
+                                    @else
+                                    (مقسم بالتساوي)
+                                    @endif
+                                </p>
+                                @endif
+                            </div>
+                            @elseif($totalCommission > 0)
+                            <div class="bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+                                <p class="text-[10px] text-gray-500 font-bold">نصيبك المتوقع:</p>
+                                <p class="text-sm font-bold text-gray-700">
+                                    {{ number_format($finalShare, 2) }} ريال
+                                </p>
+                                @if($isShared && $userPivot)
+                                <p class="text-[9px] text-gray-400">
+                                    @if($userPivot->fixed_amount)
+                                    (مبلغ ثابت)
+                                    @elseif($userPivot->commission_share)
+                                    ({{ $userPivot->commission_share }}%)
+                                    @else
+                                    (مقسم بالتساوي)
+                                    @endif
+                                </p>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
                     </td>
                     <td dir="ltr" class="text-right">{{ $lead->client_phone }}</td>
                     <td>{{ $lead->created_at->format('Y/m/d') }}</td>
