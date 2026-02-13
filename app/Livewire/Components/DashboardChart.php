@@ -9,6 +9,7 @@ class DashboardChart extends Component
     public $chartId;
     public $type = 'sales'; // sales, revenue, commissions
     public $period = 'month'; // day, week, month, year
+    public $chartType = 'area'; // area, bar, line
     public $chartTitle;
 
     public function mount($chartId, $type = 'sales', $period = 'month', $title = 'Sales Trend')
@@ -23,6 +24,12 @@ class DashboardChart extends Component
     {
         $this->period = $period;
         $this->dispatch('refreshChart-' . $this->chartId, $this->getChartData());
+    }
+
+    public function setChartType($type)
+    {
+        $this->chartType = $type;
+        $this->dispatch('changeChartType-' . $this->chartId, $type);
     }
 
     public function getChartData()

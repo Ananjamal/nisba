@@ -20,6 +20,24 @@ new #[Layout('layouts.admin')] class extends Component {
         session()->flash('message', "تمت مزامنة {$count} عملاء بنجاح من منصة دفترة!");
     }
 
+    public $modalTitle = '';
+    public $modalType = '';
+    public $showModal = false;
+
+    public function openModal($type, $title)
+    {
+        $this->modalType = $type;
+        $this->modalTitle = $title;
+        $this->showModal = true;
+        $this->dispatch('open-modal', 'stats-details');
+    }
+
+    public function closeModal()
+    {
+        $this->showModal = false;
+        $this->dispatch('close-modal', 'stats-details');
+    }
+
     public function with()
     {
         return [
@@ -47,7 +65,21 @@ new #[Layout('layouts.admin')] class extends Component {
                 ->orderByDesc('count')
                 ->take(5)
                 ->get(),
+            'modalData' => $this->getModalData(),
         ];
+    }
+
+    private function getModalData()
+    {
+        if (!$this->showModal) return collect();
+
+        return match ($this->modalType) {
+            'total_leads' => Lead::latest()->take(10)->get(),
+            'pending_leads' => Lead::where('status', 'under_review')->latest()->take(10)->get(),
+            'sold_leads' => Lead::where('status', 'sold')->latest()->take(10)->get(),
+            'total_users' => User::where('role', 'affiliate')->latest()->take(10)->get(),
+            default => collect(),
+        };
     }
 }; ?>
 
@@ -97,90 +129,139 @@ new #[Layout('layouts.admin')] class extends Component {
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stagger-slide-up">
         <!-- Total Leads -->
-        <!-- Sales Widgets -->
         @can('view sales widget')
-        <a href="{{ route('admin.leads') }}" class="block">
-            <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center group-hover:bg-primary-600 transition-colors duration-300">
-                        <svg class="w-6 h-6 text-primary-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="bg-primary-50 rounded-full p-1 group-hover:bg-primary-100 transition-colors">
-                        <svg class="w-4 h-4 text-primary-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
-                </div>
-                <p class="stat-label group-hover:text-primary-700 transition-colors">إجمالي العملاء</p>
-                <h3 class="stat-value group-hover:text-primary-700 transition-colors">{{ number_format($totalLeads) }}</h3>
-                <p class="text-xs text-primary-500 mt-2">جميع العملاء المسجلين</p>
-            </div>
-        </a>
+        <div wire:click="openModal('total_leads', 'إجمالي العملاء')"
+            wire:loading.class="opacity-70"
+            class="group relative bg-white p-6 rounded-[2rem] shadow-luxury border border-slate-100 hover:shadow-luxury-lg hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden">
+            <!-- Accent Line -->
+            <div class="absolute top-0 right-0 w-32 h-1 bg-gradient-to-l from-primary-500 to-primary-300 rounded-bl-full opacity-50 group-hover:w-full transition-all duration-700"></div>
 
-        <a href="{{ route('admin.leads', ['status' => 'under_review']) }}" class="block">
-            <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-warning-100 flex items-center justify-center group-hover:bg-warning-500 transition-colors duration-300">
-                        <svg class="w-6 h-6 text-warning-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="bg-warning-50 rounded-full p-1 group-hover:bg-warning-100 transition-colors">
-                        <svg class="w-4 h-4 text-warning-400 group-hover:text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
+            <div class="relative flex items-center justify-between mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
                 </div>
-                <p class="stat-label group-hover:text-warning-700 transition-colors">بانتظار المراجعة</p>
-                <h3 class="stat-value text-warning-600 group-hover:text-warning-700 transition-colors">{{ number_format($pendingLeads) }}</h3>
-                <p class="text-xs text-primary-500 mt-2">يتطلب اتخاذ إجراء</p>
+                <div class="p-2 bg-slate-50 rounded-xl group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
             </div>
-        </a>
 
-        <a href="{{ route('admin.leads', ['status' => 'sold']) }}" class="block">
-            <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-success-100 flex items-center justify-center group-hover:bg-success-600 transition-colors duration-300">
-                        <svg class="w-6 h-6 text-success-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="bg-success-50 rounded-full p-1 group-hover:bg-success-100 transition-colors">
-                        <svg class="w-4 h-4 text-success-400 group-hover:text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
+            <div class="relative">
+                <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">إجمالي العملاء</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="stat-value text-3xl font-black text-slate-800">{{ number_format($totalLeads) }}</h3>
+                    <span class="text-[10px] font-bold text-primary-500 bg-primary-50 px-2 py-0.5 rounded-lg">+ المجموع</span>
                 </div>
-                <p class="stat-label group-hover:text-success-700 transition-colors">عمليات بيع ناجحة</p>
-                <h3 class="stat-value text-success-600 group-hover:text-success-700 transition-colors">{{ number_format($soldLeads) }}</h3>
-                <p class="text-xs text-primary-500 mt-2">تم إتمامها بنجاح</p>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
+                    <p class="text-[11px] font-bold text-slate-500">جميع العملاء المسجلين</p>
+                </div>
             </div>
-        </a>
+        </div>
+
+        <!-- Pending Leads -->
+        <div wire:click="openModal('pending_leads', 'بانتظار المراجعة')"
+            wire:loading.class="opacity-70"
+            class="group relative bg-white p-6 rounded-[2rem] shadow-luxury border border-slate-100 hover:shadow-luxury-lg hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden">
+            <!-- Accent Line -->
+            <div class="absolute top-0 right-0 w-32 h-1 bg-gradient-to-l from-warning-500 to-warning-300 rounded-bl-full opacity-50 group-hover:w-full transition-all duration-700"></div>
+
+            <div class="relative flex items-center justify-between mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-warning-50 to-warning-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-8 h-8 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="p-2 bg-slate-50 rounded-xl group-hover:bg-warning-500 group-hover:text-white transition-colors duration-300">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="relative">
+                <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">بانتظار المراجعة</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="stat-value text-3xl font-black text-slate-800">{{ number_format($pendingLeads) }}</h3>
+                    <span class="text-[10px] font-bold text-warning-500 bg-warning-50 px-2 py-0.5 rounded-lg">عاجل</span>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-warning-500 animate-ping"></div>
+                    <p class="text-[11px] font-bold text-slate-500">يتطلب اتخاذ إجراء</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sold Leads -->
+        <div wire:click="openModal('sold_leads', 'عمليات بيع ناجحة')"
+            wire:loading.class="opacity-70"
+            class="group relative bg-white p-6 rounded-[2rem] shadow-luxury border border-slate-100 hover:shadow-luxury-lg hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden">
+            <!-- Accent Line -->
+            <div class="absolute top-0 right-0 w-32 h-1 bg-gradient-to-l from-success-500 to-success-300 rounded-bl-full opacity-50 group-hover:w-full transition-all duration-700"></div>
+
+            <div class="relative flex items-center justify-between mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-success-50 to-success-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-8 h-8 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="p-2 bg-slate-50 rounded-xl group-hover:bg-success-500 group-hover:text-white transition-colors duration-300">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="relative">
+                <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">عمليات بيع ناجحة</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="stat-value text-3xl font-black text-slate-800">{{ number_format($soldLeads) }}</h3>
+                    <span class="text-[10px] font-bold text-success-500 bg-success-50 px-2 py-0.5 rounded-lg">مكتمل</span>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-success-500"></div>
+                    <p class="text-[11px] font-bold text-slate-500">تم إتمامها بنجاح</p>
+                </div>
+            </div>
+        </div>
         @endcan
 
         <!-- Total Affiliates -->
         @can('view marketers widget')
-        <a href="{{ route('admin.affiliates') }}" class="block">
-            <div class="stat-card hover-lift transition-all duration-300 hover:shadow-lg group cursor-pointer">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-accent-100 flex items-center justify-center group-hover:bg-accent-600 transition-colors duration-300">
-                        <svg class="w-6 h-6 text-accent-600 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="bg-accent-50 rounded-full p-1 group-hover:bg-accent-100 transition-colors">
-                        <svg class="w-4 h-4 text-accent-400 group-hover:text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
+        <div wire:click="openModal('total_users', 'إجمالي المسوقين')"
+            wire:loading.class="opacity-70"
+            class="group relative bg-white p-6 rounded-[2rem] shadow-luxury border border-slate-100 hover:shadow-luxury-lg hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden">
+            <!-- Accent Line -->
+            <div class="absolute top-0 right-0 w-32 h-1 bg-gradient-to-l from-accent-500 to-accent-300 rounded-bl-full opacity-50 group-hover:w-full transition-all duration-700"></div>
+
+            <div class="relative flex items-center justify-between mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-8 h-8 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
                 </div>
-                <p class="stat-label group-hover:text-accent-700 transition-colors">إجمالي المسوقين</p>
-                <h3 class="stat-value text-accent-600 group-hover:text-accent-700 transition-colors">{{ number_format($totalUsers) }}</h3>
-                <p class="text-xs text-primary-500 mt-2">شركاء نشطون</p>
+                <div class="p-2 bg-slate-50 rounded-xl group-hover:bg-accent-500 group-hover:text-white transition-colors duration-300">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
             </div>
-        </a>
+
+            <div class="relative">
+                <p class="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">إجمالي المسوقين</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="stat-value text-3xl font-black text-slate-800">{{ number_format($totalUsers) }}</h3>
+                    <span class="text-[10px] font-bold text-accent-500 bg-accent-50 px-2 py-0.5 rounded-lg">شركاء</span>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-accent-500"></div>
+                    <p class="text-[11px] font-bold text-slate-500">شركاء نشطون</p>
+                </div>
+            </div>
+        </div>
         @endcan
     </div>
 
@@ -438,5 +519,235 @@ new #[Layout('layouts.admin')] class extends Component {
                 </div>
             </div>
         </div>
+        <!-- Premium Details Modal -->
+        <!-- Premium Details Modal (Light Theme Optimized) -->
+        <x-modal name="stats-details" :show="$showModal" maxWidth="lg">
+
+            <div dir="rtl"
+                class="relative overflow-hidden rounded-2xl
+bg-white border border-gray-200
+shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+max-w-lg mx-auto">
+
+                <!-- Light Glow -->
+                <div class="absolute -top-20 -right-20 w-60 h-60 bg-primary-100 rounded-full blur-3xl opacity-40"></div>
+                <div class="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-100 rounded-full blur-3xl opacity-40"></div>
+
+
+                <!-- Header -->
+                <div class="relative px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-indigo-50">
+
+                    <div class="flex items-center justify-between">
+
+                        <div class="flex items-center gap-3">
+
+                            <div class="w-10 h-10 rounded-xl
+                            bg-primary-500
+                            text-white flex items-center justify-center
+                            shadow-sm">
+
+                                <svg class="w-5 h-5"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+
+                            </div>
+
+                            <div>
+
+                                <h3 class="text-base font-bold text-gray-800">
+                                    {{ $modalTitle }}
+                                </h3>
+
+                                <div class="flex items-center gap-1 mt-1">
+                                    <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    <span class="text-xs text-gray-400 font-medium">
+                                        بيانات حديثة
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <button wire:click="closeModal"
+                            class="w-8 h-8 rounded-lg hover:bg-red-50
+                           flex items-center justify-center transition">
+
+                            <svg class="w-4 h-4 text-gray-400 hover:text-red-500"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-width="3"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- Body -->
+                <div class="relative px-5 py-4 space-y-3 max-h-[45vh] overflow-y-auto">
+
+                    @forelse($modalData as $item)
+
+                    <div class="p-3 rounded-xl
+                    bg-gray-50 border border-gray-100
+                    hover:bg-white hover:border-primary-200
+                    hover:shadow-sm
+                    transition-all duration-200">
+
+                        <div class="flex items-center justify-between">
+
+
+                            <div class="flex items-center gap-3">
+
+                                <div class="w-9 h-9 rounded-lg
+                                bg-primary-100 text-primary-600
+                                font-bold text-sm
+                                flex items-center justify-center">
+
+                                    {{ mb_substr(
+                            $modalType === 'total_users'
+                            ? $item->name
+                            : $item->client_name ,0,1) }}
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="text-sm font-semibold text-gray-700">
+
+                                        {{ $modalType === 'total_users'
+                            ? $item->name
+                            : $item->client_name }}
+
+                                    </div>
+
+
+                                    <div class="text-xs text-gray-400">
+
+                                        @if($modalType === 'total_users')
+
+                                        {{ $item->created_at->format('Y-m-d') }}
+
+                                        @else
+
+                                        {{ $item->user->name ?? 'غير معروف' }}
+
+                                        @endif
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+
+                            <!-- Status -->
+                            @if($modalType === 'total_users')
+
+                            <div class="px-3 py-1 rounded-lg
+                            bg-primary-50 text-primary-600
+                            text-xs font-bold">
+
+                                {{ $item->rank ?? 'Bronze' }}
+
+                            </div>
+
+                            @else
+
+                            @php
+                            $map=[
+                            'new'=>'bg-gray-100 text-gray-600',
+                            'under_review'=>'bg-amber-100 text-amber-600',
+                            'sold'=>'bg-emerald-100 text-emerald-600',
+                            'lost'=>'bg-red-100 text-red-600'
+                            ];
+                            $label=[
+                            'new'=>'جديد',
+                            'under_review'=>'مراجعة',
+                            'sold'=>'تم البيع',
+                            'lost'=>'مرفوض'
+                            ];
+                            @endphp
+
+
+                            <div class="px-3 py-1 rounded-lg text-xs font-bold
+                            {{ $map[$item->status] ?? 'bg-gray-100 text-gray-600' }}">
+
+                                {{ $label[$item->status] ?? $item->status }}
+
+                            </div>
+
+                            @endif
+
+
+                        </div>
+
+                    </div>
+
+                    @empty
+
+                    <div class="text-center py-10 text-gray-400 text-sm">
+                        لا توجد بيانات
+                    </div>
+
+                    @endforelse
+
+                </div>
+
+
+
+                <!-- Footer -->
+                <div class="px-5 py-4 border-t border-gray-100 bg-gray-50">
+
+                    @php
+                    $route = match($modalType) {
+                    'total_users' => route('admin.affiliates'),
+                    'pending_leads' => route('admin.leads', ['status'=>'under_review']),
+                    'sold_leads' => route('admin.leads', ['status'=>'sold']),
+                    default => route('admin.leads'),
+                    };
+                    @endphp
+
+
+                    <a href="{{ $route }}"
+                        class="w-full py-3 rounded-xl
+                  bg-primary-500 hover:bg-primary-600
+                  text-white text-sm font-bold
+                  flex items-center justify-center gap-2
+                  shadow-sm hover:shadow-md
+                  transition">
+
+                        عرض التفاصيل
+
+                        <svg class="w-4 h-4"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-width="3"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+
+                    </a>
+
+                </div>
+
+
+            </div>
+
+        </x-modal>
+
     </div>
 </div>

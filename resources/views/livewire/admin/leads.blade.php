@@ -248,6 +248,14 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public $showViewModal = false;
     public $viewLead = null;
+    public $showAffiliatesModal = false;
+    public $viewAffiliatesLead = null;
+
+    public function openAffiliatesModal($id)
+    {
+        $this->viewAffiliatesLead = Lead::with('users')->findOrFail($id);
+        $this->showAffiliatesModal = true;
+    }
 
     public function openViewModal($id)
     {
@@ -672,58 +680,15 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['affiliate'])
                         <td class="py-4">
                             @if($lead->users->count() > 0)
-                            @php
-                            $totalCommission = $lead->commission_type === 'fixed'
-                            ? $lead->commission_rate
-                            : ($lead->expected_deal_value * $lead->commission_rate / 100);
-                            @endphp
-
-                            @foreach($lead->users as $marketer)
-                            @php
-                            $pivot = $marketer->pivot;
-                            if ($pivot->fixed_amount) {
-                            $baseShare = $pivot->fixed_amount;
-                            $shareLabel = number_format($pivot->fixed_amount) . ' ريال (ثابت)';
-                            } elseif ($pivot->commission_share) {
-                            $baseShare = ($totalCommission * $pivot->commission_share) / 100;
-                            $shareLabel = $pivot->commission_share . '%';
-                            } else {
-                            $baseShare = $totalCommission / $lead->users->count();
-                            $shareLabel = 'مقسم بالتساوي';
-                            }
-                            $finalShare = $baseShare * $marketer->commission_multiplier;
-                            @endphp
-
-                            <div class="inline-flex flex-col gap-1 px-3 py-2 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold mb-2 mr-2 border border-primary-100 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span>{{ $marketer->name }}</span>
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] border {{ $marketer->getRankBadgeColor() }}">
-                                        {{ $marketer->getRankIcon() }} {{ $marketer->getRankLabel() }}
-                                    </span>
-                                </div>
-
-                                <!-- تفصيل العمولة -->
-                                <div class="flex items-center gap-2 text-[10px]">
-                                    <span class="bg-white px-1.5 py-0.5 rounded border border-primary-200 text-primary-600">
-                                        {{ $shareLabel }}
-                                    </span>
-                                    @if($lead->status === 'sold' && $lead->is_verified)
-                                    <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-black">
-                                        {{ number_format($finalShare, 2) }} ر.س
-                                    </span>
-                                    @endif
-                                </div>
-
-                                <div class="flex items-center gap-1 text-[10px] text-primary-500">
-                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                    </svg>
-                                    {{ $marketer->phone ?: 'لا يوجد هاتف' }}
-                                </div>
-                            </div>
-                            @endforeach
+                            <button wire:click="openAffiliatesModal({{ $lead->id }})"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold hover:bg-primary-100 transition shadow-sm border border-primary-100 group">
+                                <svg class="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span>عرض المسوقين ({{ $lead->users->count() }})</span>
+                            </button>
                             @else
-                            <span class="text-xs text-gray-400">لا يوجد مسوق</span>
+                            <span class="text-xs text-gray-400 font-medium">لا يوجد مسوق</span>
                             @endif
                         </td>
                         @endif
@@ -974,6 +939,114 @@ new #[Layout('layouts.admin')] class extends Component {
                         </button>
                         <button wire:click="editLead({{ $viewLead->id }}); showViewModal = false" class="px-8 py-3 bg-primary-600 text-white rounded-2xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all text-sm">
                             تعديل البيانات
+                        </button>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Marketers Details Modal -->
+    <template x-teleport="body">
+        <div x-data="{ showAffiliatesModal: $wire.entangle('showAffiliatesModal') }"
+            x-show="showAffiliatesModal"
+            x-on:keydown.escape.window="showAffiliatesModal = false"
+            class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showAffiliatesModal = false"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-lg transform overflow-hidden rounded-[2.5rem] bg-white shadow-2xl transition-all"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+
+                    <!-- Modal Header -->
+                    <div class="px-8 py-6 border-b border-primary-50 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
+                        <div>
+                            <h3 class="text-2xl font-black text-primary-900">المسوقين</h3>
+                            <p class="text-primary-500 text-sm font-medium">عرض المسوقين وتوزيع العمولات</p>
+                        </div>
+                        <button @click="showAffiliatesModal = false" class="p-2 rounded-full hover:bg-white hover:shadow-md transition-all text-primary-400 hover:text-primary-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    @if($viewAffiliatesLead)
+                    <div class="p-8 max-h-[70vh] overflow-y-auto">
+                        <div class="space-y-4">
+                            @php
+                            $totalCommission = $viewAffiliatesLead->commission_type === 'fixed'
+                            ? $viewAffiliatesLead->commission_rate
+                            : ($viewAffiliatesLead->expected_deal_value * $viewAffiliatesLead->commission_rate / 100);
+                            @endphp
+
+                            @forelse($viewAffiliatesLead->users as $marketer)
+                            @php
+                            $pivot = $marketer->pivot;
+                            if ($pivot->fixed_amount) {
+                            $baseShare = $pivot->fixed_amount;
+                            $shareLabel = number_format($pivot->fixed_amount) . ' ريال (ثابت)';
+                            } elseif ($pivot->commission_share) {
+                            $baseShare = ($totalCommission * $pivot->commission_share) / 100;
+                            $shareLabel = $pivot->commission_share . '%';
+                            } else {
+                            $baseShare = $totalCommission / ($viewAffiliatesLead->users->count() ?: 1);
+                            $shareLabel = 'مقسم بالتساوي';
+                            }
+                            $finalShare = $baseShare * $marketer->commission_multiplier;
+                            @endphp
+
+                            <div class="p-4 bg-primary-50/50 rounded-3xl border border-primary-100 flex flex-col gap-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600 font-black">
+                                            {{ mb_substr($marketer->name, 0, 1) }}
+                                        </div>
+                                        <div>
+                                            <p class="font-black text-primary-900">{{ $marketer->name }}</p>
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] border font-black {{ $marketer->getRankBadgeColor() }}">
+                                                    {{ $marketer->getRankIcon() }} {{ $marketer->getRankLabel() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="bg-white px-2 py-1 rounded-lg border border-primary-200 text-primary-600 text-xs font-bold">
+                                            {{ $shareLabel }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between pt-2 border-t border-primary-100/50">
+                                    <div class="flex items-center gap-2 text-xs text-primary-500 font-bold">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                        {{ $marketer->phone ?: 'لا يوجد هاتف' }}
+                                    </div>
+                                    @if($viewAffiliatesLead->status === 'sold' && $viewAffiliatesLead->is_verified)
+                                    <div class="bg-green-100 text-green-700 px-3 py-1 rounded-xl font-black text-sm">
+                                        {{ number_format($finalShare, 2) }} ر.س
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            @empty
+                            <div class="text-center py-8 text-gray-400 font-bold">
+                                لا يوجد مسوقين لهذه المبيعة
+                            </div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 rounded-b-[2.5rem] flex justify-end">
+                        <button @click="showAffiliatesModal = false" class="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 hover:shadow-sm transition-all text-sm">
+                            إغلاق
                         </button>
                     </div>
                     @endif

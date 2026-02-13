@@ -138,9 +138,10 @@
     }
 
     .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #16a34a; /* primary-600 */
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #14532d; /* primary-900 */
     }
 
     .stat-description {
@@ -255,6 +256,16 @@
         color: #ef4444;
     }
 
+    .badge-primary {
+        background-color: #f0fdf4;
+        color: #16a34a;
+    }
+
+    .badge-warning {
+        background-color: #fffbeb;
+        color: #d97706;
+    }
+
     /* ===== ALERTS ===== */
     .alert {
         padding: 1rem 1.25rem;
@@ -364,11 +375,35 @@
     }
 
     .bg-main {
-        background-color: #f5f7fa;
+        background-color: #f8fafc;
     }
 
-    .bg-light-yellow {
-        background-color: #fff9e6;
+    /* ===== LUXURY UTILITIES ===== */
+    .shadow-luxury {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+    }
+    
+    .shadow-luxury-lg {
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
+    }
+
+    .border-luxury {
+        border-color: #f1f5f9;
+    }
+
+    .bg-luxury-gradient {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .font-luxury {
+        letter-spacing: -0.01em;
     }
 
     /* ===== ANIMATIONS ===== */
@@ -421,5 +456,54 @@
     .hover-lift:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    /* ===== CHART CUSTOMIZATION ===== */
+    .chart-container-glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    }
+
+    .apexcharts-tooltip {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(22, 163, 74, 0.2) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .apexcharts-tooltip-title {
+        background: #f9fafb !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+        margin-bottom: 0 !important;
+    }
+
+    .chart-tooltip-content {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .chart-tooltip-value {
+        font-family: 'Cairo', sans-serif;
+        font-weight: 800;
+        font-size: 16px;
+        color: #16a34a;
+    }
+
+    .chart-tooltip-label {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
     }
 }
