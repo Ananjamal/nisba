@@ -72,6 +72,10 @@ Route::middleware(['auth', 'verified', 'role:admin|employee'])->prefix('admin')-
     Route::get('/reports/export/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportLeadsPdf'])->name('admin.reports.export.pdf');
     Route::get('/reports/export/payouts/excel', [\App\Http\Controllers\Admin\ReportController::class, 'exportPayoutsExcel'])->name('admin.reports.payouts.excel');
     Route::get('/reports/export/payouts/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportPayoutsPdf'])->name('admin.reports.payouts.pdf');
+    Route::get('/reports/export/affiliates/excel', [\App\Http\Controllers\Admin\ReportController::class, 'exportAffiliatesExcel'])->name('admin.reports.affiliates.excel');
+    Route::get('/reports/export/affiliates/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportAffiliatesPdf'])->name('admin.reports.affiliates.pdf');
+    Route::get('/reports/export/marketers/ranks/excel', [\App\Http\Controllers\Admin\ReportController::class, 'exportMarketerRanksExcel'])->name('admin.reports.marketers.ranks.excel');
+    Route::get('/reports/export/marketers/ranks/pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportMarketerRanksPdf'])->name('admin.reports.marketers.ranks.pdf');
 });
 
 require __DIR__ . '/auth.php';

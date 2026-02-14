@@ -78,4 +78,32 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('admin.reports.payouts-pdf', compact('payouts'));
         return $pdf->download('payouts-' . date('Y-m-d') . '.pdf');
     }
+
+    public function exportAffiliatesExcel(Request $request)
+    {
+        $filters = $request->only(['search', 'sector']);
+        return Excel::download(new \App\Exports\AffiliatesExport($filters), 'affiliates-' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function exportAffiliatesPdf(Request $request)
+    {
+        $query = \App\Models\User::where('role', 'affiliate')->withCount('leads');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('sector')) {
+            $query->where('sector', $request->sector);
+        }
+
+        $users = $query->latest()->get();
+
+        $pdf = Pdf::loadView('admin.reports.affiliates-pdf', compact('users'));
+        return $pdf->download('affiliates-' . date('Y-m-d') . '.pdf');
+    }
 }

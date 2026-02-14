@@ -23,6 +23,8 @@ new #[Layout('layouts.admin')] class extends Component {
     {
         $this->loadTablePrefs([
             'marketer' => true,
+            'phone' => true,
+            'rank' => true,
             'sector' => true,
             'email' => true,
             'joined_at' => true,
@@ -31,10 +33,20 @@ new #[Layout('layouts.admin')] class extends Component {
         ]);
     }
 
+    public $showViewModal = false;
+    public $viewUser = null;
+
+    public function openViewModal($id)
+    {
+        $this->viewUser = User::withCount('leads')->findOrFail($id);
+        $this->showViewModal = true;
+    }
+
     public function with()
     {
         return [
             'users' => User::where('role', 'affiliate')
+                ->withCount('leads')
                 ->when($this->search, function ($query) {
                     $query->where(function ($q) {
                         $q->where('name', 'like', '%' . $this->search . '%')
@@ -134,7 +146,48 @@ new #[Layout('layouts.admin')] class extends Component {
 
     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
         <x-table.filter-bar :statusOptions="[]">
+            <x-slot name="actions">
+                <div class="flex gap-2">
+                    <x-table.column-toggler :columns="$columns" :labels="[
+                    'marketer' => 'المسوق',
+                    'phone' => 'رقم الهاتف',
+                    'rank' => 'المستوى',
+                    'sector' => 'القطاع',
+                    'email' => 'البريد الإلكتروني',
+                    'joined_at' => 'تاريخ التسجيل',
+                    'status' => 'عدد العملاء',
+                    'actions' => 'العمليات'
+                ]" />
 
+                    <a href="{{ route('admin.reports.affiliates.excel', ['search' => $search, 'sector' => $sector_filter]) }}"
+                        target="_blank"
+                        class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all duration-300 shadow-sm"
+                        title="تصدير Excel">
+                        <svg class="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </a>
+                    <a href="{{ route('admin.reports.affiliates.pdf', ['search' => $search, 'sector' => $sector_filter]) }}"
+                        target="_blank"
+                        class="group flex items-center justify-center p-2.5 bg-white border border-gray-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm"
+                        title="تصدير PDF">
+                        <svg class="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z M12 11h4m-4 4h4m-4-8h4" />
+                        </svg>
+                    </a>
+
+                    <button wire:click="createUser" class="btn btn-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>إضافة مسوق</span>
+                    </button>
+                </div>
+            </x-slot>
+        </x-table.filter-bar>
+
+        <!-- فلاتر إضافية -->
+        <div class="flex flex-wrap items-center gap-3 mb-6">
             <div class="relative w-full md:w-auto min-w-[180px] group">
                 <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,26 +207,16 @@ new #[Layout('layouts.admin')] class extends Component {
                 </div>
             </div>
 
-            <x-slot name="actions">
-                <div class="flex gap-2">
-                    <x-table.column-toggler :columns="$columns" :labels="[
-                    'marketer' => 'المسوق',
-                    'sector' => 'القطاع',
-                    'email' => 'البريد الإلكتروني',
-                    'joined_at' => 'تاريخ التسجيل',
-                    'status' => 'الحالة',
-                    'actions' => 'العمليات'
-                ]" />
-
-                    <button wire:click="createUser" class="btn btn-primary">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span>إضافة مسوق</span>
-                    </button>
-                </div>
-            </x-slot>
-        </x-table.filter-bar>
+            @if($sector_filter)
+            <button wire:click="$set('sector_filter', '')"
+                class="px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                إعادة تعيين
+            </button>
+            @endif
+        </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-right">
@@ -181,6 +224,12 @@ new #[Layout('layouts.admin')] class extends Component {
                     <tr class="text-primary-400 text-sm border-b border-primary-50">
                         @if($columns['marketer'])
                         <x-table.th field="name" :sortField="$sortField" :sortDirection="$sortDirection" label="المسوق" />
+                        @endif
+                        @if($columns['phone'])
+                        <x-table.th field="phone" :sortField="$sortField" :sortDirection="$sortDirection" label="رقم الهاتف" />
+                        @endif
+                        @if($columns['rank'])
+                        <x-table.th field="rank" :sortField="$sortField" :sortDirection="$sortDirection" label="المستوى" />
                         @endif
                         @if($columns['sector'])
                         <x-table.th field="sector" :sortField="$sortField" :sortDirection="$sortDirection" label="القطاع" />
@@ -192,7 +241,7 @@ new #[Layout('layouts.admin')] class extends Component {
                         <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ التسجيل" />
                         @endif
                         @if($columns['status'])
-                        <x-table.th field="status" :sortField="$sortField" :sortDirection="$sortDirection" label="الحالة" />
+                        <x-table.th field="leads_count" :sortField="$sortField" :sortDirection="$sortDirection" label="عدد العملاء" />
                         @endif
                         @if($columns['actions'])
                         <th class="pb-4 font-bold text-left">العمليات</th>
@@ -208,8 +257,18 @@ new #[Layout('layouts.admin')] class extends Component {
                                 <div class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 font-bold">
                                     {{ substr($user->name, 0, 1) }}
                                 </div>
-                                <a href="{{ route('admin.affiliates.show', $user->id) }}" class="font-bold text-gray-900 block hover:text-primary-600 transition text-right">{{ $user->name }}</a>
+                                <button wire:click="openViewModal({{ $user->id }})" class="font-bold text-gray-900 block hover:text-primary-600 transition text-right">{{ $user->name }}</button>
                             </div>
+                        </td>
+                        @endif
+                        @if($columns['phone'])
+                        <td class="py-4 font-bold text-gray-600">{{ $user->phone ?? '-' }}</td>
+                        @endif
+                        @if($columns['rank'])
+                        <td class="py-4">
+                            <span class="px-2 py-1 rounded-lg text-xs font-bold border {{ $user->getRankBadgeColor() }}">
+                                {{ $user->getRankIcon() }} {{ $user->getRankLabel() }}
+                            </span>
                         </td>
                         @endif
                         @if($columns['sector'])
@@ -231,12 +290,12 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['actions'])
                         <td class="py-4">
                             <div class="flex gap-2">
-                                <a href="{{ route('admin.affiliates.show', $user->id) }}" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="عرض التفاصيل">
+                                <button wire:click="openViewModal({{ $user->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="عرض التفاصيل">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
-                                </a>
+                                </button>
                                 <button wire:click="editUser({{ $user->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="تعديل">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -401,6 +460,155 @@ new #[Layout('layouts.admin')] class extends Component {
                             إلغاء
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Professional View Details Modal -->
+    <template x-teleport="body">
+        <div x-data="{ showViewModal: $wire.entangle('showViewModal') }"
+            x-show="showViewModal"
+            x-on:keydown.escape.window="showViewModal = false"
+            class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showViewModal = false"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-2xl transform overflow-hidden rounded-[2.5rem] bg-white shadow-2xl transition-all"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+
+                    <!-- Modal Header -->
+                    <div class="px-8 py-6 border-b border-primary-50 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
+                        <div>
+                            <h3 class="text-2xl font-black text-primary-900">تفاصيل المسوق</h3>
+                            <p class="text-primary-500 text-sm font-medium">عرض المعلومات الكاملة للمسوق والأداء</p>
+                        </div>
+                        <button @click="showViewModal = false" class="p-2 rounded-full hover:bg-white hover:shadow-md transition-all text-primary-400 hover:text-primary-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    @if($viewUser)
+                    <div class="p-8 max-h-[70vh] overflow-y-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- User Basic Info -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">المعلومات الشخصية</h4>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600 font-bold">
+                                                {{ substr($viewUser->name, 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">الاسم الكامل</p>
+                                                <p class="font-black text-primary-900 text-lg line-height-1">{{ $viewUser->name }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">رقم الهاتف</p>
+                                                <p class="font-black text-primary-900 text-lg leading-none">{{ $viewUser->phone ?: 'غير متوفر' }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-[10px] text-primary-400 font-bold">البريد الإلكتروني</p>
+                                                <p class="font-black text-primary-900 text-xs truncate">{{ $viewUser->email }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+                                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">تفاصيل إضافية</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">القطاع</p>
+                                            <p class="font-black text-primary-900">{{ $viewUser->sector ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">تاريخ الانضمام</p>
+                                            <p class="font-black text-primary-900">{{ $viewUser->created_at->format('Y-m-d') }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Performance & Financial -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">مستوى الأداء</h4>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between p-3 bg-white rounded-2xl border border-primary-50 shadow-sm">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-2xl shadow-sm border border-gray-100">
+                                                    {{ $viewUser->getRankIcon() }}
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] text-primary-400 font-bold">المستوى الحالي</p>
+                                                    <span class="px-2 py-0.5 rounded text-xs font-black {{ $viewUser->getRankBadgeColor() }}">
+                                                        {{ $viewUser->getRankLabel() }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div class="p-3 bg-white rounded-2xl border border-primary-50 shadow-sm text-center">
+                                                <p class="text-[10px] text-primary-400 font-bold mb-1">عدد العملاء</p>
+                                                <p class="text-xl font-black text-primary-900">{{ $viewUser->leads_count }}</p>
+                                            </div>
+                                            <!-- Add more stats if available -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-amber-50/30 p-6 rounded-3xl border border-amber-100">
+                                    <h4 class="text-xs font-black text-amber-500 uppercase tracking-widest mb-4">المعلومات المالية</h4>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <p class="text-[10px] text-amber-500 font-bold">اسم البنك</p>
+                                            <p class="font-black text-primary-900">{{ $viewUser->bank_name ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-amber-500 font-bold">اسم صاحب الحساب</p>
+                                            <p class="font-black text-primary-900">{{ $viewUser->account_holder_name ?: '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-amber-500 font-bold">رقم الآيبان</p>
+                                            <p class="font-mono text-sm font-bold text-primary-900 dir-ltr text-left">{{ $viewUser->iban ?: '-' }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 rounded-b-[2.5rem] flex justify-end gap-3">
+                        <button @click="showViewModal = false" class="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 hover:shadow-sm transition-all text-sm">
+                            إغلاق
+                        </button>
+                        <button wire:click="editUser({{ $viewUser->id }}); showViewModal = false" class="btn btn-primary">
+                            تعديل البيانات
+                        </button>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

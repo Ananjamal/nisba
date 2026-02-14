@@ -9,11 +9,45 @@ use Livewire\WithPagination;
 class MarketerRanks extends Component
 {
     use WithPagination;
+    use \App\Livewire\Traits\WithDynamicTable;
 
     public $search = '';
     public $rank_filter = '';
+    public $sector_filter = '';
+    public $showViewModal = false;
+    public $viewUser = null;
 
-    protected $updatesQueryString = ['search', 'rank_filter'];
+    public function mount()
+    {
+        $this->sortField = 'name';
+        $this->sortDirection = 'asc';
+    }
+
+    protected $updatesQueryString = ['search', 'rank_filter', 'sector_filter', 'sortField', 'sortDirection'];
+
+    public function exportExcel()
+    {
+        return redirect()->route('admin.reports.marketers.ranks.excel', [
+            'search' => $this->search,
+            'rank' => $this->rank_filter,
+            'sector' => $this->sector_filter,
+        ]);
+    }
+
+    public function exportPdf()
+    {
+        return redirect()->route('admin.reports.marketers.ranks.pdf', [
+            'search' => $this->search,
+            'rank' => $this->rank_filter,
+            'sector' => $this->sector_filter,
+        ]);
+    }
+
+    public function openViewModal($id)
+    {
+        $this->viewUser = User::withCount('leads')->findOrFail($id);
+        $this->showViewModal = true;
+    }
 
     public function updateRank($userId, $rankName)
     {
@@ -48,13 +82,20 @@ class MarketerRanks extends Component
     public function render()
     {
         $marketers = User::where('role', 'affiliate')
+            ->withCount('leads')
             ->when($this->search, function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%');
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                });
             })
             ->when($this->rank_filter, function ($query) {
                 $query->where('rank', $this->rank_filter);
             })
+            ->when($this->sector_filter, function ($query) {
+                $query->where('sector', $this->sector_filter);
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
 
         return view('livewire.admin.marketer-ranks', [

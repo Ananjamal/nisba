@@ -19,10 +19,16 @@ new #[Layout('layouts.admin')] class extends Component {
     public $userId = null;
     public $user = null;
 
+    // View Modal State
+    public $showViewModal = false;
+    public $viewUser = null;
+    public $userActivity = [];
+
     #[Rule('required|min:3')]
     public $name = '';
 
     public $email = '';
+    public $phone = '';
     public $password = '';
 
     public $selectedRoles = [];
@@ -34,7 +40,9 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->columns = [
             'name' => true,
             'email' => true,
+            'phone' => true,
             'role' => true,
+            'status' => true,
             'created_at' => true,
             'actions' => true,
         ];
@@ -44,7 +52,7 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public function openCreateModal()
     {
-        $this->reset(['name', 'email', 'password', 'selectedRoles', 'userId', 'isEditMode', 'user']);
+        $this->reset(['name', 'email', 'phone', 'password', 'selectedRoles', 'userId', 'isEditMode', 'user']);
         $this->resetValidation();
         $this->showModal = true;
     }
@@ -61,6 +69,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->userId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
+        $this->phone = $user->phone;
         $this->selectedRoles = $user->roles->pluck('name')->toArray();
         $this->password = ''; // Reset password field
         $this->isEditMode = true;
@@ -72,6 +81,7 @@ new #[Layout('layouts.admin')] class extends Component {
         $rules = [
             'name' => 'required|min:3',
             'email' => ['required', 'email', ValidationRule::unique('users')->ignore($this->userId)],
+            'phone' => ['nullable', 'string', 'max:20'],
             'selectedRoles' => 'required|array|min:1',
             'selectedRoles.*' => 'exists:roles,name',
         ];
@@ -88,6 +98,7 @@ new #[Layout('layouts.admin')] class extends Component {
             $data = [
                 'name' => $this->name,
                 'email' => $this->email,
+                'phone' => $this->phone,
             ];
 
             if (!empty($this->password)) {
@@ -104,6 +115,7 @@ new #[Layout('layouts.admin')] class extends Component {
             $user = User::create([
                 'name' => $this->name,
                 'email' => $this->email,
+                'phone' => $this->phone,
                 'password' => Hash::make($this->password),
                 'role' => $this->selectedRoles[0] ?? 'employee',
                 'status' => 'active',
@@ -159,6 +171,27 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->dispatch('notify', type: 'success', message: 'تم حذف الموظف بنجاح');
     }
 
+    public function openViewModal(User $user)
+    {
+        $this->viewUser = $user;
+        $this->userActivity = ActivityLog::where('causer_id', $user->id)
+            ->orWhere(function ($query) use ($user) {
+                $query->where('subject_type', User::class)
+                    ->where('subject_id', $user->id);
+            })
+            ->latest()
+            ->limit(5)
+            ->get();
+        $this->showViewModal = true;
+    }
+
+    public function closeViewModal()
+    {
+        $this->showViewModal = false;
+        $this->viewUser = null;
+        $this->userActivity = [];
+    }
+
     public function with(): array
     {
         $users = User::query()
@@ -166,9 +199,11 @@ new #[Layout('layouts.admin')] class extends Component {
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                        ->orWhere('email', 'like', '%' . $this->search . '%')
+                        ->orWhere('phone', 'like', '%' . $this->search . '%');
                 });
             })
+            ->with(['roles'])
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
 
@@ -192,7 +227,9 @@ new #[Layout('layouts.admin')] class extends Component {
                     <x-table.column-toggler :columns="$columns" :labels="[
                         'name' => 'الاسم',
                         'email' => 'البريد الإلكتروني',
+                        'phone' => 'رقم الهاتف',
                         'role' => 'الدور الوظيفي',
+                        'status' => 'الحالة',
                         'created_at' => 'تاريخ الانضمام',
                         'actions' => 'العمليات'
                     ]" />
@@ -217,8 +254,14 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['email'])
                         <x-table.th field="email" :sortField="$sortField" :sortDirection="$sortDirection" label="البريد الإلكتروني" />
                         @endif
+                        @if($columns['phone'])
+                        <x-table.th field="phone" :sortField="$sortField" :sortDirection="$sortDirection" label="رقم الهاتف" />
+                        @endif
                         @if($columns['role'])
-                        <th class="pb-4 font-bold text-left">الدور الوظيفي</th>
+                        <th class="pb-4 font-bold text-right">الدور الوظيفي</th>
+                        @endif
+                        @if($columns['status'])
+                        <x-table.th field="status" :sortField="$sortField" :sortDirection="$sortDirection" label="الحالة" />
                         @endif
                         @if($columns['created_at'])
                         <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ الانضمام" />
@@ -244,6 +287,9 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['email'])
                         <td class="py-4 font-bold text-primary-900">{{ $user->email }}</td>
                         @endif
+                        @if($columns['phone'])
+                        <td class="py-4 font-bold text-primary-900" dir="ltr text-right">{{ $user->phone ?? '-' }}</td>
+                        @endif
                         @if($columns['role'])
                         <td class="py-4">
                             <div class="flex flex-wrap gap-1">
@@ -257,6 +303,19 @@ new #[Layout('layouts.admin')] class extends Component {
                             </div>
                         </td>
                         @endif
+                        @if($columns['status'])
+                        <td class="py-4">
+                            @if($user->status === 'active')
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-green-50 text-green-600 border border-green-100">
+                                نشط
+                            </span>
+                            @else
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100">
+                                غير نشط
+                            </span>
+                            @endif
+                        </td>
+                        @endif
                         @if($columns['created_at'])
                         <td class="py-4">
                             <div class="font-bold text-primary-600">{{ $user->created_at->format('Y/m/d') }}</div>
@@ -266,6 +325,12 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['actions'])
                         <td class="py-4">
                             <div class="flex gap-2">
+                                <button wire:click="openViewModal({{ $user->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="عرض التفاصيل">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
                                 <button wire:click="openEditModal({{ $user->id }})" class="p-2 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-300" title="تعديل">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -349,6 +414,15 @@ new #[Layout('layouts.admin')] class extends Component {
                         @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2.5">رقم الهاتف</label>
+                        <input type="text" wire:model="phone"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white text-left"
+                            placeholder="05xxxxxxxx" dir="ltr">
+                        @error('phone') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
                     <!-- Password -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2.5">
@@ -393,4 +467,194 @@ new #[Layout('layouts.admin')] class extends Component {
             </form>
         </div>
     </div>
+
+    <!-- Professional View Details Modal -->
+    <template x-teleport="body">
+        <div x-show="$wire.showViewModal"
+            x-on:keydown.escape.window="$wire.closeViewModal()"
+            class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="$wire.closeViewModal()"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-2xl transform overflow-hidden rounded-[2.5rem] bg-white shadow-2xl transition-all"
+                    x-show="$wire.showViewModal"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+
+                    @if($viewUser)
+                    <!-- Leads-Style Modal Header -->
+                    <div class="px-8 py-6 border-b border-primary-50 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
+                        <div>
+                            <h3 class="text-2xl font-black text-primary-900">تفاصيل الموظف</h3>
+                            <p class="text-primary-500 text-sm font-medium">عرض المعلومات الكاملة للموظف والنشاطات</p>
+                        </div>
+                        <button @click="$wire.closeViewModal()" class="p-2 rounded-full hover:bg-white hover:shadow-md transition-all text-primary-400 hover:text-primary-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="p-8 max-h-[70vh] overflow-y-auto bg-white">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Staff Basic Info -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">معلومات الموظف</h4>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">الاسم الكامل</p>
+                                                <p class="font-black text-primary-900 text-lg line-height-1">{{ $viewUser->name }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-[10px] text-primary-400 font-bold">البريد الإلكتروني</p>
+                                                <p class="font-black text-primary-900 text-sm truncate">{{ $viewUser->email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-primary-100 flex items-center justify-center text-primary-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-primary-400 font-bold">رقم الهاتف</p>
+                                                <p class="font-black text-primary-900 text-lg leading-none" dir="ltr">{{ $viewUser->phone ?: '-' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+                                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">تفاصيل إضافية</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">الحالة</p>
+                                            @if($viewUser->status === 'active')
+                                            <span class="inline-flex items-center gap-1.5 text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                نشط
+                                            </span>
+                                            @else
+                                            <span class="inline-flex items-center gap-1.5 text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">
+                                                غير نشط
+                                            </span>
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-400 font-bold">تاريخ الانضمام</p>
+                                            <p class="font-black text-primary-900 text-sm">{{ $viewUser->created_at->format('Y-m-d') }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Roles & Context -->
+                            <div class="space-y-6">
+                                <div class="bg-primary-50/50 p-6 rounded-3xl border border-primary-100">
+                                    <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">الأدوار الوظيفية</h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        @forelse($viewUser->roles as $role)
+                                        <div class="px-4 py-2 bg-white rounded-2xl border border-primary-50 shadow-sm flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full bg-primary-400"></div>
+                                            <span class="text-xs font-black text-primary-900">{{ $role->name }}</span>
+                                        </div>
+                                        @empty
+                                        <p class="text-xs text-gray-400 font-bold">لا توجد أدوار محددة</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <div class="bg-amber-50/30 p-6 rounded-3xl border border-amber-100">
+                                    <h4 class="text-xs font-black text-amber-500 uppercase tracking-widest mb-4">ملخص النشاط</h4>
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-amber-500 font-bold">آخر ظهور</p>
+                                            <p class="font-black text-primary-900">{{ $viewUser->created_at->diffForHumans() }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Timeline (Leads Style) -->
+                        <div class="mt-8">
+                            <h4 class="text-xs font-black text-primary-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span class="w-8 h-px bg-primary-100"></span>
+                                سجل النشاطات الأخير
+                                <span class="w-8 h-px bg-primary-100"></span>
+                            </h4>
+
+                            <div class="space-y-4">
+                                @forelse($userActivity as $activity)
+                                <div class="flex gap-4 group">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center text-primary-600 transition-colors group-hover:bg-primary-600 group-hover:text-white">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div class="w-px h-full bg-primary-50 group-last:hidden mt-1"></div>
+                                    </div>
+                                    <div class="flex-1 pb-6">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-[10px] font-black text-primary-600 uppercase">{{ $activity->type }}</span>
+                                            <span class="text-[9px] font-bold text-gray-400 uppercase">{{ $activity->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <div class="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 group-hover:border-primary-100 transition-colors">
+                                            <p class="text-sm font-bold text-gray-700 leading-relaxed">{{ $activity->description }}</p>
+                                            @if($activity->ip_address)
+                                            <div class="mt-2 text-[9px] text-gray-400 font-black flex items-center gap-1.5">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                                </svg>
+                                                IP: {{ $activity->ip_address }}
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="text-center py-6 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                                    <p class="text-xs text-gray-400 font-bold italic">لا توجد نشاطات مسجلة</p>
+                                </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-8 py-6 bg-gray-50 border-t border-gray-100 rounded-b-[2.5rem] flex justify-end gap-3">
+                        <button @click="$wire.closeViewModal()" class="btn btn-secondary">
+                            إغلاق
+                        </button>
+                        <!-- <button wire:click="openEditModal({{ $viewUser->id }})" class="btn btn-primary">
+                            تعديل البيانات
+                        </button> -->
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
