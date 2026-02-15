@@ -50,6 +50,16 @@ new #[Layout('layouts.admin')] class extends Component {
     public $affiliate_fixed = []; // [userId => fixedAmount]
     public $recommended_systems = []; // Array of system IDs
 
+    // New Service fields
+    public $new_service_name = '';
+    public $new_service_id = '';
+    public $new_service_image = null;
+    public $show_add_service = false;
+
+    // New Sector fields
+    public $new_sector_name_input = '';
+    public $show_add_sector = false;
+
     public function resetForm()
     {
         $this->leadId = null;
@@ -118,6 +128,82 @@ new #[Layout('layouts.admin')] class extends Component {
             $this->recommended_systems = array_diff($this->recommended_systems, [$systemId]);
         } else {
             $this->recommended_systems[] = $systemId;
+        }
+    }
+
+    public function addNewSector()
+    {
+        $this->validate([
+            'new_sector_name_input' => 'required|string|max:50',
+        ]);
+
+        $available = json_decode(\App\Models\Setting::get('available_sectors', '[]'), true) ?: [
+            'العقارات',
+            'التقنية والبرمجة',
+            'التسويق والدعاية',
+            'التجارة الإلكترونية',
+            'التعليم',
+            'الصحة',
+            'الخدمات المالية',
+            'المقاولات والبناء',
+            'المطاعم والكافيهات',
+            'أخرى'
+        ];
+
+        if (in_array($this->new_sector_name_input, $available)) {
+            $this->addError('new_sector_name_input', 'هذا القطاع موجود بالفعل');
+            return;
+        }
+
+        $available[] = $this->new_sector_name_input;
+        \App\Models\Setting::set('available_sectors', json_encode($available));
+
+        $this->sector = $this->new_sector_name_input;
+        $this->new_sector_name_input = '';
+        $this->show_add_sector = false;
+        $this->dispatch('toast', type: 'success', message: 'تم إضافة القطاع الجديد بنجاح');
+    }
+
+    public function addNewService()
+    {
+        $this->validate([
+            'new_service_name' => 'required|string|max:50',
+            'new_service_id' => 'required|string|max:20|alpha_dash',
+            'new_service_image' => 'nullable|image|max:1024',
+        ]);
+
+        $available = json_decode(\App\Models\Setting::get('available_systems', '[]'), true) ?: [
+            ['name' => 'قيود', 'id' => 'qoyod'],
+            ['name' => 'دفترة', 'id' => 'daftra'],
+        ];
+
+        foreach ($available as $sys) {
+            if ($sys['id'] === $this->new_service_id) {
+                $this->addError('new_service_id', 'هذا المعرف موجود بالفعل');
+                return;
+            }
+        }
+
+        if ($this->new_service_image) {
+            $this->new_service_image->storeAs('images/systems', $this->new_service_id . '.png', 'public_uploads');
+        }
+
+        $available[] = ['name' => $this->new_service_name, 'id' => $this->new_service_id];
+        \App\Models\Setting::set('available_systems', json_encode($available));
+
+        $this->recommended_systems[] = $this->new_service_id;
+        $this->new_service_name = '';
+        $this->new_service_id = '';
+        $this->new_service_image = null;
+        $this->show_add_service = false;
+        $this->dispatch('toast', type: 'success', message: 'تم إضافة الخدمة الجديدة بنجاح');
+    }
+
+    public function updatedSector($value)
+    {
+        if ($value === 'أخرى') {
+            $this->show_add_sector = true;
+            $this->sector = '';
         }
     }
 
@@ -289,10 +375,21 @@ new #[Layout('layouts.admin')] class extends Component {
             'affiliates' => \App\Models\User::where('role', 'affiliate')->get(),
             'regions' => \App\Services\SaudiGeoService::getRegions(),
             'regionsWithCities' => \App\Services\SaudiGeoService::getRegionsWithCities(),
-            'available_systems' => [
+            'available_systems' => json_decode(\App\Models\Setting::get('available_systems', '[]'), true) ?: [
                 ['name' => 'قيود', 'id' => 'qoyod'],
                 ['name' => 'دفترة', 'id' => 'daftra'],
-            ]
+            ],
+            'available_sectors' => array_unique(array_merge(json_decode(\App\Models\Setting::get('available_sectors', '[]'), true) ?: [
+                'العقارات',
+                'التقنية والبرمجة',
+                'التسويق والدعاية',
+                'التجارة الإلكترونية',
+                'التعليم',
+                'الصحة',
+                'الخدمات المالية',
+                'المقاولات والبناء',
+                'المطاعم والكافيهات'
+            ], ['أخرى']))
         ];
     }
 }; ?>
@@ -476,22 +573,47 @@ new #[Layout('layouts.admin')] class extends Component {
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2.5">القطاع / المجال</label>
-                            <select wire:model="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            <select wire:model.live="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
                                 <option value="">اختر القطاع</option>
-                                <option value="العقارات">العقارات</option>
-                                <option value="التقنية والبرمجة">التقنية والبرمجة</option>
-                                <option value="التسويق والدعاية">التسويق والدعاية</option>
-                                <option value="التجارة الإلكترونية">التجارة الإلكترونية</option>
-                                <option value="التعليم">التعليم</option>
-                                <option value="الصحة">الصحة</option>
-                                <option value="الخدمات المالية">الخدمات المالية</option>
-                                <option value="المقاولات والبناء">المقاولات والبناء</option>
-                                <option value="المطاعم والكافيهات">المطاعم والكافيهات</option>
-                                <option value="أخرى">أخرى</option>
+                                @foreach($available_sectors as $s)
+                                <option value="{{ $s }}">{{ $s }}</option>
+                                @endforeach
                             </select>
+                            @if($show_add_sector)
+                            <div class="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                                <input type="text" wire:model="new_sector_name_input" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 text-sm font-bold" placeholder="اسم القطاع الجديد">
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="$wire.show_add_sector = false" class="px-3 py-1.5 text-[10px] font-bold text-gray-500">إلغاء</button>
+                                    <button type="button" wire:click="addNewSector" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black">تأكيد</button>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-3.5">الخدمة المقترحة</label>
+                            <div class="flex items-center justify-between mb-3.5">
+                                <label class="text-sm font-semibold text-gray-700">الخدمة المقترحة</label>
+                                <!-- <button type="button" wire:click="$toggle('show_add_service')" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-[10px] font-black group">
+                                    <svg class="w-4 h-4 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    إضافة خدمة جديدة
+                                </button> -->
+                            </div>
+                            @if($show_add_service)
+                            <div class="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="text" wire:model="new_service_name" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="اسم الخدمة">
+                                    <input type="text" wire:model="new_service_id" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="المعرف (انجليزي)" dir="ltr">
+                                    <div class="col-span-2">
+                                        <input type="file" wire:model="new_service_image" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="$wire.show_add_service = false" class="px-4 py-2 text-xs font-bold text-gray-500">إلغاء</button>
+                                    <button type="button" wire:click="addNewService" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-black">حفظ الخدمة</button>
+                                </div>
+                            </div>
+                            @endif
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 @foreach($available_systems as $system)
                                 <button type="button"
@@ -522,6 +644,18 @@ new #[Layout('layouts.admin')] class extends Component {
                                     @endif
                                 </button>
                                 @endforeach
+
+                                <!-- Add Service (+) Card -->
+                                <button type="button"
+                                    wire:click="$toggle('show_add_service')"
+                                    class="relative group flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 min-h-[120px]">
+                                    <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-3 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors shadow-sm">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </div>
+                                    <span class="font-black text-[10px] text-gray-500 uppercase tracking-widest group-hover:text-blue-700 transition-colors">إضافة أخرى</span>
+                                </button>
                             </div>
                         </div>
                     </div>

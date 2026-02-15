@@ -55,6 +55,8 @@ Route::middleware(['auth', 'verified', 'role:admin|employee'])->prefix('admin')-
     Volt::route('/affiliates/{user}', 'admin.affiliates-show')->name('admin.affiliates.show');
     Route::get('/marketers/ranks', \App\Livewire\Admin\MarketerRanks::class)->name('admin.marketers.ranks');
     Volt::route('/payouts', 'admin.payouts')->name('admin.payouts');
+    Volt::route('/services', 'admin.services')->name('admin.services');
+    Volt::route('/sectors', 'admin.sectors')->name('admin.sectors');
     Volt::route('/settings', 'admin.settings')->name('admin.settings');
 
     // Roles & Permissions

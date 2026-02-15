@@ -224,47 +224,31 @@ new #[Layout('layouts.admin')] class extends Component {
 
                         @if ($columns['bank_info'])
                         <td class="py-5 px-3">
-                            <div class="group/bank relative max-w-[210px]">
-                                <!-- Luxury Card Component -->
-                                <div class="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-primary-500/5 hover:-translate-y-1 hover:border-primary-100 overflow-hidden relative">
-                                    <div class="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 blur-3xl -mr-12 -mt-12 rounded-full opacity-0 group-hover/bank:opacity-100 transition-opacity"></div>
+                            <div class="flex flex-col items-start gap-1">
+                                <span class="font-bold text-gray-900 text-sm leading-tight">{{ $request->bank_name }}</span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{{ $request->account_holder_name }}</span>
 
-                                    <!-- Card Header -->
-                                    <div class="flex items-center gap-3 mb-3 shrink-0">
-                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100 flex items-center justify-center text-primary-600 shadow-sm shrink-0">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-[11px] font-black text-gray-900 truncate leading-none mb-1 tracking-tight" title="{{ $request->bank_name }}">{{ $request->bank_name }}</p>
-                                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none truncate">{{ $request->account_holder_name }}</p>
-                                        </div>
+                                <div x-data="{ copied: false }" class="flex items-center justify-between gap-2 bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100 group/iban hover:border-primary-100 transition-colors w-full">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="text-[9px] font-black text-gray-400 shrink-0 select-none">IBAN</span>
+                                        <span class="font-mono text-[10px] font-bold text-gray-600 tracking-tight truncate" dir="ltr">{{ $request->iban }}</span>
                                     </div>
-
-                                    <!-- IBAN Field -->
-                                    <div x-data="{ copied: false }" class="relative flex items-center justify-between gap-2 px-3 py-2 bg-gray-50/50 rounded-xl border border-gray-100/50 transition-colors group-hover/bank:bg-white group-hover/bank:border-primary-100/50">
-                                        <div class="flex flex-col min-w-0">
-                                            <span class="text-[8px] font-black text-primary-400 uppercase tracking-widest mb-0.5">Sensitive IBAN</span>
-                                            <span class="text-[10px] font-mono font-black text-gray-800 tracking-tighter truncate uppercase">{{ $request->iban }}</span>
-                                        </div>
-                                        <button
-                                            @click="
-                                                navigator.clipboard.writeText('{{ $request->iban }}');
-                                                copied = true;
-                                                setTimeout(() => copied = false, 2000);
-                                                $dispatch('toast', {type: 'success', message: 'تم نسخ الآيبان'})
-                                            "
-                                            class="p-1.5 rounded-lg hover:bg-primary-50 text-gray-400 hover:text-primary-600 transition-all active:scale-95 border-0 bg-transparent shrink-0"
-                                            title="نسخ">
-                                            <svg x-show="!copied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
-                                            </svg>
-                                            <svg x-show="copied" class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
+                                    <button
+                                        @click="
+                                            navigator.clipboard.writeText('{{ $request->iban }}');
+                                            copied = true;
+                                            setTimeout(() => copied = false, 2000);
+                                            $dispatch('toast', {type: 'success', message: 'تم نسخ الآيبان'})
+                                        "
+                                        class="text-gray-400 hover:text-primary-600 transition-colors shrink-0"
+                                        title="نسخ">
+                                        <svg x-show="!copied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                                        </svg>
+                                        <svg x-show="copied" style="display: none;" class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </td>
@@ -493,7 +477,7 @@ new #[Layout('layouts.admin')] class extends Component {
                     @can('finance approve withdrawals')
                     <div class="bg-gray-50/30 p-8 rounded-2xl border border-gray-100 shadow-sm">
                         <p class="text-[10px] font-black text-gray-400 mb-6 text-center uppercase tracking-[0.2em]">بانتظار الاعتماد المالي</p>
-                        <button wire:click="financeApprove" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-black py-4 rounded-xl transition shadow-lg shadow-amber-900/20 active:scale-[0.98]">
+                        <button wire:click="financeApprove" class="w-full btn btn-primary active:scale-[0.98]">
                             اعتماد البيانات المالية
                         </button>
                     </div>

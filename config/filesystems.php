@@ -41,10 +41,17 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
+        ],
+
+        'public_uploads' => [
+            'driver' => 'local',
+            'root' => public_path(),
+            'url' => env('APP_URL', 'http://localhost'),
+            'visibility' => 'public',
         ],
 
         's3' => [

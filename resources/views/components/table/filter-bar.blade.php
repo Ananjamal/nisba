@@ -1,4 +1,4 @@
-@props(['statusOptions' => []])
+@props(['statusOptions' => [], 'showDate' => true])
 
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pt-2">
 
@@ -45,6 +45,7 @@
         {{ $slot }}
 
         <!-- Date Range Picker -->
+        @if($showDate)
         <div class="flex items-center bg-white border border-gray-200 rounded-xl px-1 py-0.5 shadow-sm transition-all hover:border-gray-300 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
             <div class="relative">
                 <input type="date" wire:model.live="date_from"
@@ -58,6 +59,7 @@
                     title="إلى تاريخ">
             </div>
         </div>
+        @endif
 
         <!-- Reset Filters Button -->
         @if((isset($search) && $search) || (isset($status_filter) && $status_filter) || (isset($date_from) && $date_from) || (isset($date_to) && $date_to))
