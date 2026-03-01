@@ -18,6 +18,13 @@ class DatabaseSeeder extends Seeder
         // Setup Roles and Permissions first
         $this->call(RolesAndPermissionsSeeder::class);
 
+        // Seed basic data
+        $this->call([
+            CityAreaSeeder::class,
+            ServiceSeeder::class,
+            PromotionPlanSeeder::class,
+        ]);
+
         // Admin
         $admin = User::factory()->create([
             'name' => 'Admin User',
@@ -25,6 +32,7 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password'),
             'role' => 'admin',
             'status' => 'active',
+            'referral_code' => User::generateReferralCode(),
         ]);
         $admin->assignRole('admin');
 
@@ -36,6 +44,7 @@ class DatabaseSeeder extends Seeder
             'role' => 'affiliate',
             'status' => 'active',
             'phone' => '0599123123',
+            'referral_code' => User::generateReferralCode(),
         ]);
         $user->assignRole('affiliate');
 
@@ -60,12 +69,17 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Some Leads
-        $user->leads()->create([
+        $lead = \App\Models\Lead::create([
+            'user_id' => $user->id,
             'client_name' => 'Phelan Wilcox',
             'company_name' => 'Rose Fowler LLC',
             'city' => 'جدة',
             'client_phone' => '0599123123',
             'status' => 'under_review',
+            'unique_id' => \App\Models\Lead::generateUniqueId(),
         ]);
+
+        // Attach services to lead
+        $lead->services()->attach([1, 2]); // CRM and ERP systems
     }
 }

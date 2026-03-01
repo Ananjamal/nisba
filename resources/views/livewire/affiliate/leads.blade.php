@@ -764,44 +764,44 @@ new class extends Component {
                                     إضافة خدمة جديدة
                                 </button> -->
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                @foreach($available_systems as $system)
-                                <button type="button"
-                                    wire:click="toggleSystem('{{ $system['id'] }}')"
-                                    class="relative group flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-primary-50/50' : 'border-gray-100 hover:border-primary-200 bg-white' }}">
+                            <div class="space-y-3">
+                                <div>
+                                    <select
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold text-gray-700"
+                                        x-data
+                                        x-on:change="if ($event.target.value) { $wire.toggleSystem($event.target.value); $event.target.value=''; }">
+                                        <option value="">اختر خدمة...</option>
+                                        @foreach($available_systems as $system)
+                                            <option value="{{ $system['id'] }}" @disabled(in_array($system['id'], $recommended_systems))>
+                                                {{ $system['name'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                                    <div class="h-12 flex items-center justify-center mb-3 transition-transform group-hover:scale-105">
-                                        <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all">
+                                @if(!empty($recommended_systems))
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($recommended_systems as $sysId)
+                                            @php
+                                                $sys = collect($available_systems)->firstWhere('id', $sysId);
+                                            @endphp
+                                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm font-black text-gray-700">
+                                                <img src="{{ asset('images/systems/' . $sysId . '.png') }}" class="w-6 h-6 object-contain" alt="{{ $sys['name'] ?? $sysId }}">
+                                                <span>{{ $sys['name'] ?? $sysId }}</span>
+                                                <button type="button" wire:click="toggleSystem('{{ $sysId }}')" class="text-gray-400 hover:text-red-600 font-black">×</button>
+                                            </span>
+                                        @endforeach
                                     </div>
+                                @endif
 
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors {{ in_array($system['id'], $recommended_systems) ? 'border-primary-900 bg-primary-900' : 'border-gray-300' }}">
-                                            @if(in_array($system['id'], $recommended_systems))
-                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                            @endif
-                                        </div>
-                                        <span class="font-bold text-sm {{ in_array($system['id'], $recommended_systems) ? 'text-primary-900' : 'text-gray-500 group-hover:text-gray-700' }}">{{ $system['name'] }}</span>
-                                    </div>
-
-                                    @if(in_array($system['id'], $recommended_systems))
-                                    <div class="absolute inset-0 border-2 border-primary-900 rounded-xl pointer-events-none"></div>
-                                    @endif
-                                </button>
-                                @endforeach
-
-                                <!-- Add New Service (+) Card -->
-                                <button type="button"
-                                    wire:click="$toggle('show_add_service')"
-                                    class="relative group flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-primary-400 hover:bg-primary-50/30 transition-all duration-200 min-h-[120px]">
-                                    <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-3 group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                    </div>
-                                    <span class="font-black text-[10px] text-gray-500 uppercase tracking-widest group-hover:text-primary-900 transition-colors">إضافة أخرى</span>
-                                </button>
+                                <div>
+                                    <button type="button"
+                                        wire:click="$toggle('show_add_service')"
+                                        class="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-primary-400 hover:bg-primary-50/30 transition-all duration-200 font-black text-xs text-gray-600">
+                                        <span class="text-lg">+</span>
+                                        <span>إضافة أخرى</span>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- New Service Input Form -->

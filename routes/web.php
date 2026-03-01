@@ -42,8 +42,14 @@ Route::get('/re/{unique_ref_id}', function ($unique_ref_id) {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
     Route::view('profile', 'profile')->name('profile');
+    Route::redirect('profile/settings', 'profile')->name('profile.settings');
     Route::view('affiliate/referral-links', 'affiliate.referral-links')->name('affiliate.referral-links');
     Route::view('affiliate/team', 'affiliate.team')->name('affiliate.team');
+
+    // Enhanced Affiliate Routes
+    Route::get('/affiliate/leads', \App\Livewire\Affiliate\LeadManagement::class)->name('affiliate.leads');
+    Route::get('/affiliate/withdrawals', \App\Livewire\Affiliate\WithdrawalManagement::class)->name('affiliate.withdrawals');
+    Route::get('/affiliate/password', \App\Livewire\Components\PasswordManagement::class)->name('affiliate.password');
 });
 
 // Admin Routes
@@ -58,6 +64,14 @@ Route::middleware(['auth', 'verified', 'role:admin|employee'])->prefix('admin')-
     Volt::route('/services', 'admin.services')->name('admin.services');
     Volt::route('/sectors', 'admin.sectors')->name('admin.sectors');
     Volt::route('/settings', 'admin.settings')->name('admin.settings');
+
+    // Enhanced Admin Routes
+    Route::get('/users', \App\Livewire\Admin\UserManagement::class)->name('admin.users');
+    Route::get('/charts', \App\Livewire\Charts\DashboardCharts::class)->name('admin.charts');
+
+    Route::get('/password', \App\Livewire\Components\PasswordManagement::class)->name('admin.password');
+    Route::get('/subscription-renewals', \App\Livewire\Admin\SubscriptionRenewalManagement::class)->name('admin.subscription-renewals');
+    Route::get('/activity-history', \App\Livewire\Admin\ActivityHistory::class)->name('admin.activity-history');
 
     // Roles & Permissions
     Route::middleware(['can:manage roles'])->group(function () {

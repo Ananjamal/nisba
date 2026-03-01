@@ -81,7 +81,7 @@ class LeadsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             $lead->sector,
             $lead->commission_type === 'fixed' ? 'ثابت' : 'نسبة',
             $lead->commission_rate . ($lead->commission_type === 'percent' ? '%' : ' ر.س'),
-            $this->getStatusLabel($lead->status),
+            Lead::statusLabel($lead->status),
             $lead->users->pluck('name')->implode(', '),
             $lead->created_at->format('Y-m-d'),
         ];
@@ -92,16 +92,5 @@ class LeadsExport implements FromQuery, WithHeadings, WithMapping, WithStyles
         return [
             1 => ['font' => ['bold' => true]],
         ];
-    }
-
-    private function getStatusLabel($status)
-    {
-        return match ($status) {
-            'under_review' => 'تحت المراجعة',
-            'contacting' => 'جاري التواصل',
-            'sold' => 'تم البيع',
-            'cancelled' => 'ملغي',
-            default => $status,
-        };
     }
 }

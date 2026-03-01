@@ -10,6 +10,9 @@ class WithdrawalRequest extends Model
         'user_id',
         'lead_id',
         'amount',
+        'tax_amount',
+        'final_amount',
+        'tax_rate',
         'iban',
         'bank_name',
         'account_holder_name',
@@ -27,6 +30,8 @@ class WithdrawalRequest extends Model
         'admin_approved_at',
         'rejection_reason',
         'payment_method',
+        'delegated_to',
+        'notes',
     ];
 
     public function user()
@@ -47,5 +52,57 @@ class WithdrawalRequest extends Model
     public function adminApprover()
     {
         return $this->belongsTo(User::class, 'admin_approved_by');
+    }
+
+    public function delegatedTo()
+    {
+        return $this->belongsTo(User::class, 'delegated_to');
+    }
+
+    public function calculateTax()
+    {
+        $taxRate = SystemSetting::get('tax_rate', 15);
+        $taxAmount = ($this->amount * $taxRate) / 100;
+        $finalAmount = $this->amount - $taxAmount;
+
+        $this->update([
+            'tax_rate' => $taxRate,
+            'tax_amount' => $taxAmount,
+            'final_amount' => $finalAmount,
+        ]);
+
+        return $finalAmount;
+    }
+
+    public function delegate($toUserId)
+    {
+        $this->update([
+            'delegated_to' => $toUserId,
+        ]);
+    }
+
+    public function isValidAmount()
+    {
+        $minAmount = SystemSetting::get('min_withdrawal_amount', 100);
+        $maxAmount = SystemSetting::get('max_withdrawal_amount', 10000);
+
+        return $this->amount >= $minAmount && $this->amount <= $maxAmount;
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($withdrawal) {
+            $withdrawal->calculateTax();
+        });
     }
 }

@@ -42,8 +42,8 @@ new #[Layout('layouts.admin')] class extends Component {
     {
         return [
             'totalLeads' => Lead::count(),
-            'pendingLeads' => Lead::where('status', 'under_review')->count(),
-            'soldLeads' => Lead::where('status', 'sold')->count(),
+            'pendingLeads' => Lead::where('status', Lead::STATUS_NEW)->count(),
+            'soldLeads' => Lead::where('status', Lead::STATUS_SOLD)->count(),
             'totalUsers' => User::where('role', 'affiliate')->count(),
             'recentLeads' => Lead::latest()->take(5)->get(),
             'pendingPayouts' => WithdrawalRequest::where('status', 'pending')->count(),
@@ -75,8 +75,8 @@ new #[Layout('layouts.admin')] class extends Component {
 
         return match ($this->modalType) {
             'total_leads' => Lead::latest()->take(10)->get(),
-            'pending_leads' => Lead::where('status', 'under_review')->latest()->take(10)->get(),
-            'sold_leads' => Lead::where('status', 'sold')->latest()->take(10)->get(),
+            'pending_leads' => Lead::where('status', Lead::STATUS_NEW)->latest()->take(10)->get(),
+            'sold_leads' => Lead::where('status', Lead::STATUS_SOLD)->latest()->take(10)->get(),
             'total_users' => User::where('role', 'affiliate')->latest()->take(10)->get(),
             default => collect(),
         };
@@ -297,38 +297,14 @@ new #[Layout('layouts.admin')] class extends Component {
             </div>
             <div class="card-body">
                 <div class="space-y-4">
-                    @php
-                    $statusLabels = [
-                    'new' => 'جديد',
-                    'under_review' => 'تحت المراجعة',
-                    'contacted' => 'تم التواصل',
-                    'interested' => 'مهتم',
-                    'proposal_sent' => 'تم إرسال عرض',
-                    'negotiation' => 'مفاوضات',
-                    'sold' => 'تم البيع',
-                    'lost' => 'مرفوض',
-                    'cancelled' => 'ملغي'
-                    ];
-                    $statusColors = [
-                    'new' => 'bg-gray-500',
-                    'under_review' => 'bg-warning-500',
-                    'contacted' => 'bg-primary-500',
-                    'interested' => 'bg-primary-500',
-                    'proposal_sent' => 'bg-primary-600',
-                    'negotiation' => 'bg-primary-700',
-                    'sold' => 'bg-success-500',
-                    'lost' => 'bg-red-500',
-                    'cancelled' => 'bg-gray-400'
-                    ];
-                    @endphp
                     @foreach($leadsByStatusProcessed as $status => $data)
                     <div>
                         <div class="flex justify-between mb-1">
-                            <span class="text-sm font-medium text-primary-700">{{ $statusLabels[$status] ?? $status }}</span>
+                            <span class="text-sm font-medium text-primary-700">{{ \App\Models\Lead::statusLabel($status) }}</span>
                             <span class="text-sm font-bold text-primary-900">{{ $data['count'] }}</span>
                         </div>
                         <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="{{ $statusColors[$status] ?? 'bg-primary-500' }} h-2.5 rounded-full transition-all duration-500" style="width: {{ $data['percentage'] }}%"></div>
+                            <div class="h-2.5 rounded-full transition-all duration-500 {{ str_replace('bg-', 'bg-', \App\Models\Lead::statusBadgeClass($status)) }}" style="width: {{ $data['percentage'] }}%"></div>
                         </div>
                     </div>
                     @endforeach
@@ -666,30 +642,9 @@ max-w-lg mx-auto">
                             </div>
 
                             @else
-
-                            @php
-                            $map=[
-                            'new'=>'bg-gray-100 text-gray-600',
-                            'under_review'=>'bg-amber-100 text-amber-600',
-                            'sold'=>'bg-emerald-100 text-emerald-600',
-                            'lost'=>'bg-red-100 text-red-600'
-                            ];
-                            $label=[
-                            'new'=>'جديد',
-                            'under_review'=>'مراجعة',
-                            'sold'=>'تم البيع',
-                            'lost'=>'مرفوض'
-                            ];
-                            @endphp
-
-
-                            <div class="px-3 py-1 rounded-lg text-xs font-bold
-                            {{ $map[$item->status] ?? 'bg-gray-100 text-gray-600' }}">
-
-                                {{ $label[$item->status] ?? $item->status }}
-
+                            <div class="px-3 py-1 rounded-lg text-xs font-bold border {{ \App\Models\Lead::statusBadgeClass($item->status) }}">
+                                {{ \App\Models\Lead::statusLabel($item->status) }}
                             </div>
-
                             @endif
 
 
@@ -715,8 +670,8 @@ max-w-lg mx-auto">
                     @php
                     $route = match($modalType) {
                     'total_users' => route('admin.affiliates'),
-                    'pending_leads' => route('admin.leads', ['status'=>'under_review']),
-                    'sold_leads' => route('admin.leads', ['status'=>'sold']),
+                    'pending_leads' => route('admin.leads', ['status' => \App\Models\Lead::STATUS_NEW]),
+                    'sold_leads' => route('admin.leads', ['status' => \App\Models\Lead::STATUS_SOLD]),
                     default => route('admin.leads'),
                     };
                     @endphp

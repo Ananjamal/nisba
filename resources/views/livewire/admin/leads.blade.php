@@ -22,6 +22,7 @@ new #[Layout('layouts.admin')] class extends Component {
             'commission' => true,
             'affiliate' => true,
             'date' => true,
+            'renewal_date' => true,
             'city_phone' => true,
             'status' => true,
             'actions' => true,
@@ -286,7 +287,7 @@ new #[Layout('layouts.admin')] class extends Component {
             $lead->users()->sync($syncData);
             $message = 'تم تحديث بيانات العميل بنجاح!';
         } else {
-            $data['status'] = 'under_review';
+            $data['status'] = \App\Models\Lead::STATUS_NEW;
             $data['user_id'] = \Illuminate\Support\Facades\Auth::id();
             $lead = Lead::create($data);
             $lead->users()->sync($syncData);
@@ -401,7 +402,7 @@ new #[Layout('layouts.admin')] class extends Component {
     </div>
     @endif
     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-        <x-table.filter-bar :statusOptions="['under_review' => 'تحت المراجعة', 'contacting' => 'جاري التواصل', 'sold' => 'تم البيع', 'cancelled' => 'ملغي']">
+        <x-table.filter-bar :statusOptions="collect(\App\Models\Lead::lifecycleStatuses())->mapWithKeys(fn($v, $k) => [$k => $v['label']])->toArray()">
 
             <x-slot name="actions">
                 <div class="flex gap-2">
@@ -448,7 +449,7 @@ new #[Layout('layouts.admin')] class extends Component {
             <div class="relative min-w-[180px] group">
                 <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                 </div>
                 <select wire:model.live="sector_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
@@ -459,7 +460,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 </select>
                 <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
             </div>
@@ -468,7 +469,7 @@ new #[Layout('layouts.admin')] class extends Component {
             <div class="relative min-w-[180px] group">
                 <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                 </div>
                 <select wire:model.live="affiliate_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
@@ -479,7 +480,7 @@ new #[Layout('layouts.admin')] class extends Component {
                 </select>
                 <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
             </div>
@@ -489,257 +490,11 @@ new #[Layout('layouts.admin')] class extends Component {
             <button wire:click="$set('sector_filter', ''); $set('affiliate_filter', '')"
                 class="px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 إعادة تعيين
             </button>
             @endif
-        </div>
-
-        <div x-data="{ show: $wire.entangle('showCreateModal') }"
-            x-show="show"
-            x-on:keydown.escape.window="show = false"
-            class="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto"
-            style="display: none;">
-            <!-- Backdrop -->
-            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity"
-                @click="show = false"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"></div>
-
-            <!-- Modal Container -->
-            <div class="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl mt-4 mb-6 max-h-[85vh] flex flex-col border-2 border-gray-200"
-                @click.away="show = false"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100">
-
-                <!-- Header - Soft and Clean -->
-                <div class="bg-gradient-to-b from-gray-50 to-white px-8 py-6 flex justify-between items-center flex-shrink-0 border-b border-gray-200">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800">{{ $leadId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد' }}</h3>
-                        <p class="text-gray-500 text-sm mt-1.5">{{ $leadId ? 'قم بتحديث معلومات العميل' : 'أدخل معلومات العميل الجديد' }}</p>
-                    </div>
-                    <button wire:click="$set('showCreateModal', false)"
-                        class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2.5 rounded-xl transition-all duration-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-
-                <!-- Modal Content - Scrollable -->
-                <div class="p-8 space-y-6 overflow-y-auto flex-1 bg-white">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم العميل</label>
-                            <input type="text" wire:model="name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                            @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">رقم الهاتف</label>
-                            <input type="text" wire:model="phone" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                            @error('phone') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">البريد الإلكتروني <span class="text-gray-400 text-xs">(اختياري)</span></label>
-                            <input type="email" wire:model="email" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المنطقة</label>
-                            <select wire:model.live="region" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                                <option value="">اختر المنطقة</option>
-                                @foreach($regions as $regionName)
-                                <option value="{{ $regionName }}">{{ $regionName }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المدينة</label>
-                            <select wire:model="city" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white" {{ !$region ? 'disabled' : '' }}>
-                                <option value="">{{ $region ? 'اختر المدينة' : 'اختر المنطقة أولاً' }}</option>
-                                @if($region && isset($regionsWithCities[$region]))
-                                @foreach($regionsWithCities[$region] as $cityName)
-                                <option value="{{ $cityName }}">{{ $cityName }}</option>
-                                @endforeach
-                                @endif
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم الشركة</label>
-                            <input type="text" wire:model="company_name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">القطاع / المجال</label>
-                            <select wire:model.live="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                                <option value="">اختر القطاع</option>
-                                @foreach($available_sectors as $s)
-                                <option value="{{ $s }}">{{ $s }}</option>
-                                @endforeach
-                            </select>
-                            @if($show_add_sector)
-                            <div class="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
-                                <input type="text" wire:model="new_sector_name_input" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 text-sm font-bold" placeholder="اسم القطاع الجديد">
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" @click="$wire.show_add_sector = false" class="px-3 py-1.5 text-[10px] font-bold text-gray-500">إلغاء</button>
-                                    <button type="button" wire:click="addNewSector" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black">تأكيد</button>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-                        <div class="md:col-span-2">
-                            <div class="flex items-center justify-between mb-3.5">
-                                <label class="text-sm font-semibold text-gray-700">الخدمة المقترحة</label>
-                                <!-- <button type="button" wire:click="$toggle('show_add_service')" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-[10px] font-black group">
-                                    <svg class="w-4 h-4 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    إضافة خدمة جديدة
-                                </button> -->
-                            </div>
-                            @if($show_add_service)
-                            <div class="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <input type="text" wire:model="new_service_name" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="اسم الخدمة">
-                                    <input type="text" wire:model="new_service_id" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="المعرف (انجليزي)" dir="ltr">
-                                    <div class="col-span-2">
-                                        <input type="file" wire:model="new_service_image" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700">
-                                    </div>
-                                </div>
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" @click="$wire.show_add_service = false" class="px-4 py-2 text-xs font-bold text-gray-500">إلغاء</button>
-                                    <button type="button" wire:click="addNewService" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-black">حفظ الخدمة</button>
-                                </div>
-                            </div>
-                            @endif
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                @foreach($available_systems as $system)
-                                <button type="button"
-                                    wire:click="toggleSystem('{{ $system['id'] }}')"
-                                    class="relative group flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 {{ in_array($system['id'], $recommended_systems) ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20' : 'border-gray-200 hover:border-blue-300 bg-white hover:shadow-md' }}">
-
-                                    <div class="h-12 flex items-center justify-center mb-3 transition-transform group-hover:scale-110 duration-300">
-                                        <img src="{{ asset('images/systems/' . $system['id'] . '.png') }}" alt="{{ $system['name'] }}" class="h-full object-contain filter {{ in_array($system['id'], $recommended_systems) ? '' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100' }} transition-all duration-300">
-                                    </div>
-
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 {{ in_array($system['id'], $recommended_systems) ? 'border-blue-600 bg-blue-600 scale-110' : 'border-gray-300 group-hover:border-blue-400' }}">
-                                            @if(in_array($system['id'], $recommended_systems))
-                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                            @endif
-                                        </div>
-                                        <span class="font-bold text-xs {{ in_array($system['id'], $recommended_systems) ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800' }} transition-colors">{{ $system['name'] }}</span>
-                                    </div>
-
-                                    @if(in_array($system['id'], $recommended_systems))
-                                    <div class="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-1">
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    @endif
-                                </button>
-                                @endforeach
-
-                                <!-- Add Service (+) Card -->
-                                <button type="button"
-                                    wire:click="$toggle('show_add_service')"
-                                    class="relative group flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 min-h-[120px]">
-                                    <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-3 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                    </div>
-                                    <span class="font-black text-[10px] text-gray-500 uppercase tracking-widest group-hover:text-blue-700 transition-colors">إضافة أخرى</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-200 pt-6 mt-6">
-                        <h4 class="font-semibold text-gray-800 mb-5 text-base">إعدادات العمولة</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2.5">نوع العمولة</label>
-                                <select wire:model.live="commission_type" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                                    <option value="fixed">مبلغ ثابت</option>
-                                    <option value="percentage">نسبة مئوية</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {{ $commission_type === 'fixed' ? 'قيمة العمولة (ريال)' : 'نسبة العمولة (%)' }}
-                                </label>
-                                <input type="number" wire:model="commission_rate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
-                                @error('commission_rate') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-200 pt-6 mt-6">
-                        <label class="block text-sm font-semibold text-gray-700 mb-4">المسوقين <span class="text-gray-400 text-xs">(يمكن اختيار أكثر من مسوق)</span></label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
-                            @foreach($affiliates as $affiliate)
-                            <div wire:key="marketer-share-{{ $affiliate->id }}" class="p-3.5 bg-white rounded-xl border {{ in_array($affiliate->id, $affiliate_ids) ? 'border-blue-300 shadow-sm' : 'border-gray-100' }} transition-all duration-200">
-                                <label class="flex items-center gap-3 cursor-pointer mb-3">
-                                    <input type="checkbox"
-                                        wire:model.live="affiliate_ids"
-                                        value="{{ $affiliate->id }}"
-                                        class="w-5 h-5 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500 border-gray-300">
-                                    <div class="flex-1">
-                                        <span class="text-sm font-bold text-gray-800 block">{{ $affiliate->name }}</span>
-                                        <span class="text-[10px] text-gray-500 uppercase font-black">{{ $affiliate->getRankLabel() }}</span>
-                                    </div>
-                                </label>
-
-                                @if(in_array($affiliate->id, $affiliate_ids))
-                                <div class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-50" x-transition>
-                                    <div>
-                                        <label class="text-[9px] font-black text-gray-400 block mb-1">النسبة (%)</label>
-                                        <input type="number" step="0.01" wire:model.blur="affiliate_shares.{{ $affiliate->id }}" placeholder="النسبة" class="w-full px-2 py-1.5 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
-                                    </div>
-                                    <div>
-                                        <label class="text-[9px] font-black text-gray-400 block mb-1">مبلغ ثابت (ريال)</label>
-                                        <input type="number" wire:model.blur="affiliate_fixed.{{ $affiliate->id }}" placeholder="مبلغ محدد" class="w-full px-2 py-1.5 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
-                                    </div>
-                                </div>
-                                @endif
-                            </div>
-                            @endforeach
-                        </div>
-                        <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                            </svg>
-                            إذا لم يتم اختيار أي مسوق، سيتم تعيين العميل لك تلقائياً.
-                        </p>
-                        @error('affiliate_ids') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-
-
-                    <!-- Modal Footer - Sticky -->
-                    <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 bg-gray-50 -mx-8 px-8 -mb-8 pb-6 flex-shrink-0">
-                        <button wire:click="$set('showCreateModal', false)"
-                            class="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 font-semibold transition-all duration-200 flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            إلغاء
-                        </button>
-                        <button wire:click="saveLead"
-                            class="btn btn-primary">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            {{ $leadId ? 'حفظ التغييرات' : 'حفظ العميل' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -760,6 +515,9 @@ new #[Layout('layouts.admin')] class extends Component {
                         @endif
                         @if($columns['date'])
                         <x-table.th field="created_at" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ الإضافة" />
+                        @endif
+                        @if($columns['renewal_date'])
+                        <x-table.th field="subscription_renewal_date" :sortField="$sortField" :sortDirection="$sortDirection" label="تاريخ التجديد" />
                         @endif
                         @if($columns['city_phone'])
                         <x-table.th field="city" :sortField="$sortField" :sortDirection="$sortDirection" label="المدينة / الهاتف" />
@@ -817,7 +575,7 @@ new #[Layout('layouts.admin')] class extends Component {
                             <button wire:click="openAffiliatesModal({{ $lead->id }})"
                                 class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold hover:bg-primary-100 transition shadow-sm border border-primary-100 group">
                                 <svg class="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                                 <span>عرض المسوقين ({{ $lead->users->count() }})</span>
                             </button>
@@ -831,6 +589,18 @@ new #[Layout('layouts.admin')] class extends Component {
                             <p class="text-sm font-bold text-primary-600">{{ $lead->created_at->format('Y-m-d') }}</p>
                         </td>
                         @endif
+                        @if($columns['renewal_date'])
+                        <td class="py-4">
+                            @if($lead->subscription_renewal_date)
+                                <p class="text-sm font-bold text-green-600">{{ $lead->subscription_renewal_date->format('Y-m-d') }}</p>
+                                @if($lead->subscription_renewal_date->diffInDays(now()) <= 30)
+                                    <span class="text-xs text-orange-600 font-medium">ينتج خلال {{ $lead->subscription_renewal_date->diffInDays(now()) }} يوم</span>
+                                @endif
+                            @else
+                                <span class="text-sm text-gray-400">غير محدد</span>
+                            @endif
+                        </td>
+                        @endif
                         @if($columns['city_phone'])
                         <td class="py-4">
                             <p class="text-sm font-bold text-primary-800">{{ $lead->city }}</p>
@@ -839,33 +609,9 @@ new #[Layout('layouts.admin')] class extends Component {
                         @endif
                         @if($columns['status'])
                         <td class="py-4">
-                            @php
-                            $statusColors = [
-                            'under_review' => 'bg-red-50 text-red-600',
-                            'contacting' => 'bg-yellow-50 text-yellow-600',
-                            'sold' => 'bg-green-50 text-green-600',
-                            'cancelled' => 'bg-gray-100 text-gray-500'
-                            ];
-                            $statusLabels = [
-                            'under_review' => 'تحت المراجعة',
-                            'contacting' => 'جاري التواصل',
-                            'sold' => 'تم البيع',
-                            'cancelled' => 'ملغي'
-                            ];
-                            @endphp
-                            <div class="flex flex-col gap-1">
-                                <span class="px-3 py-1 rounded-full text-[10px] font-black {{ $statusColors[$lead->status] ?? 'bg-gray-100 text-gray-500' }} text-center">
-                                    {{ $statusLabels[$lead->status] ?? $lead->status }}
-                                </span>
-                                @if($lead->is_verified)
-                                <span class="flex items-center justify-center gap-1 text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md border border-green-100" title="تم التحقق من الدفع">
-                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
-                                    </svg>
-                                    مؤكد ({{ $lead->external_system ?? 'يدوي' }})
-                                </span>
-                                @endif
-                            </div>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
+                                {{ \App\Models\Lead::statusLabel($lead->status) }}
+                            </span>
                         </td>
                         @endif
                         @if($columns['actions'])
@@ -1005,8 +751,8 @@ new #[Layout('layouts.admin')] class extends Component {
                                         </div>
                                         <div>
                                             <p class="text-[10px] text-gray-400 font-bold">الحالة</p>
-                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-black {{ $statusColors[$viewLead->status] ?? '' }}">
-                                                {{ $statusLabels[$viewLead->status] ?? $viewLead->status }}
+                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-black border {{ \App\Models\Lead::statusBadgeClass($viewLead->status) }}">
+                                                {{ \App\Models\Lead::statusLabel($viewLead->status) }}
                                             </span>
                                         </div>
                                     </div>

@@ -79,20 +79,57 @@ new #[Layout('layouts.app')] class extends Component {
 
 <div class="space-y-8 pb-12" x-data="{ chartTab: 'sales' }">
     <!-- Header -->
-    <div class="flex items-end justify-between bg-white/50 backdrop-blur-lg p-6 rounded-3xl shadow-sm border border-gray-100">
-        <div>
-            <h2 class="text-3xl font-black text-gray-900 tracking-tight">{{ __('لوحة القيادة') }}</h2>
-            <p class="text-gray-500 font-bold mt-2">{{ __('نظرة عامة على أدائك وأرباحك') }}</p>
-        </div>
-        <div class="px-6 py-3 bg-white border border-gray-200 text-gray-900 rounded-2xl shadow-sm font-black flex items-center gap-3">
-            <div class="flex flex-col items-end">
-                <span class="text-xs text-gray-400 font-bold uppercase">المسوق</span>
-                <span>{{ $user->name }}</span>
-            </div>
-            <div class="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center text-primary-600 border border-primary-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
+    @php
+        $hour = now()->hour;
+        $greeting = $hour < 12 ? 'صباح الخير' : ($hour < 18 ? 'مساء الخير' : 'مساء الخير');
+    @endphp
+    <div class="card" style="overflow:hidden;">
+        <div class="card-body" style="padding:0;">
+            <div style="background: linear-gradient(135deg, #16a34a 0%, #14532d 55%, #0b2f22 100%);">
+                <div style="background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.22) 0, rgba(255,255,255,0) 42%), radial-gradient(circle at 85% 30%, rgba(255,255,255,0.16) 0, rgba(255,255,255,0) 46%);">
+                    <div style="padding: 28px; min-height: 170px;" class="md:p-10">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                            <div class="flex items-center gap-6">
+                                <div style="width: 104px; height: 104px; overflow: hidden; border-radius: 22px; flex: 0 0 104px; border: 3px solid rgba(255,255,255,0.38); background: rgba(255,255,255,0.10);">
+                                    <img src="{{ $user->profile_image_url }}" alt="{{ $user->name }}" style="display:block; width:100%; height:100%; object-fit:cover;">
+                                </div>
+                                <div>
+                                    <div style="color: rgba(255,255,255,0.92); font-weight: 800; font-size: 14px; letter-spacing: 0.2px;">
+                                        {{ $greeting }} 👋
+                                    </div>
+                                    <div style="color: #ffffff; font-weight: 900; font-size: 34px; line-height: 1.1;">
+                                        {{ $user->name }}
+                                    </div>
+                                    <div style="color: rgba(255,255,255,0.92); font-weight: 800; margin-top: 8px; font-size: 15px;">
+                                        لوحة القيادة
+                                        <span style="opacity:0.9;">·</span>
+                                        نظرة عامة على أدائك وأرباحك
+                                    </div>
+                                    <div style="color: rgba(255,255,255,0.82); font-weight: 700; margin-top: 6px; font-size: 13px;">
+                                        استمر بالمتابعة… كل تواصل اليوم ممكن يتحول لعميل غداً
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2 mt-4">
+                                        <span style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18); color:#fff; padding: 6px 10px; border-radius: 9999px; font-weight: 800; font-size: 12px;">
+                                            جاهز لزيادة المبيعات
+                                        </span>
+                                        <span style="background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18); color:#fff; padding: 6px 10px; border-radius: 9999px; font-weight: 800; font-size: 12px;">
+                                            ركّز على العملاء الجدد
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="text-align:right; color: rgba(255,255,255,0.85); font-weight: 800;">
+                                <div style="font-size: 12px; opacity: 0.95;">{{ now()->format('Y/m/d') }}</div>
+                                <div style="margin-top: 10px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18); padding: 14px 14px; border-radius: 16px; min-width: 210px;">
+                                    <div style="font-size: 12px; opacity: 0.95;">هدفك اليوم</div>
+                                    <div style="font-size: 14px; color:#fff; font-weight: 900; margin-top: 4px;">تابع العملاء وحوّل الاهتمام إلى مبيعات</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -101,18 +138,18 @@ new #[Layout('layouts.app')] class extends Component {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- إجمالي الأرباح -->
         <div wire:click="openModal('total_earnings', 'المبيعات المكتملة')"
-            class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-5">
-            <div class="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-6">
+            <div class="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
 
             <div class="flex-1">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">إجمالي الأرباح</p>
-                <h3 class="text-2xl font-black text-gray-900 tracking-tight">{{ number_format($stats->total_contracts_value ?? 0, 2) }}</h3>
-                <div class="flex items-center gap-1 mt-1 text-[10px] font-bold text-primary-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p class="text-sm font-black text-gray-400 uppercase tracking-wider mb-2">إجمالي الأرباح</p>
+                <h3 class="text-3xl font-black text-gray-900 tracking-tight">{{ number_format($stats->total_contracts_value ?? 0, 2) }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-black text-primary-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
                     <span>+12% نمو</span>
@@ -122,17 +159,17 @@ new #[Layout('layouts.app')] class extends Component {
 
         <!-- العمولة المعلقة -->
         <div wire:click="openModal('pending_commissions', 'العمولات المعلقة')"
-            class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-5">
-            <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-6">
+            <div class="w-20 h-20 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
 
             <div class="flex-1">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">بانتظار الصرف</p>
-                <h3 class="text-2xl font-black text-gray-900 tracking-tight">{{ number_format($stats->pending_commissions ?? 0, 2) }}</h3>
-                <div class="flex items-center gap-1 mt-1 text-[10px] font-bold text-amber-600">
+                <p class="text-sm font-black text-gray-400 uppercase tracking-wider mb-2">بانتظار الصرف</p>
+                <h3 class="text-3xl font-black text-gray-900 tracking-tight">{{ number_format($stats->pending_commissions ?? 0, 2) }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-black text-amber-600">
                     <span>قيد المعالجة</span>
                 </div>
             </div>
@@ -140,39 +177,39 @@ new #[Layout('layouts.app')] class extends Component {
 
         <!-- العملاء المشتركين -->
         <div wire:click="openModal('active_clients', 'العملاء المهتمون')"
-            class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-5">
-            <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-6">
+            <div class="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
             </div>
 
             <div class="flex-1">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">عملاء مشتركين</p>
-                <h3 class="text-2xl font-black text-gray-900 tracking-tight">{{ number_format($stats->active_clients_count ?? 0) }}</h3>
-                <div class="flex items-center gap-1 mt-1 text-[10px] font-bold text-emerald-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p class="text-sm font-black text-gray-400 uppercase tracking-wider mb-2">عملاء مشتركين</p>
+                <h3 class="text-3xl font-black text-gray-900 tracking-tight">{{ number_format($stats->active_clients_count ?? 0) }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-black text-emerald-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
-                    <span>+5 جدد</span>
+                    <span>+5% نمو</span>
                 </div>
             </div>
         </div>
 
         <!-- إجمالي النقرات -->
-        <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group flex items-center gap-5">
-            <div class="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group flex items-center gap-6">
+            <div class="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
             </div>
 
             <div class="flex-1">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">إجمالي النقرات</p>
-                <h3 class="text-2xl font-black text-gray-900 tracking-tight">{{ number_format($stats->clicks_count ?? 0) }}</h3>
-                <div class="flex items-center gap-1 mt-1 text-[10px] font-bold text-rose-600">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p class="text-sm font-black text-gray-400 uppercase tracking-wider mb-2">إجمالي النقرات</p>
+                <h3 class="text-3xl font-black text-gray-900 tracking-tight">{{ number_format($stats->clicks_count ?? 0) }}</h3>
+                <div class="flex items-center gap-2 mt-2 text-xs font-black text-rose-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
                     <span>+24% نشاط</span>

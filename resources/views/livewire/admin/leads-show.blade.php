@@ -88,20 +88,68 @@ new #[Layout('layouts.admin')] class extends Component {
 
         <!-- Right: Status & Actions -->
         <div class="space-y-6">
+            <!-- Lifecycle Timeline -->
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-primary-100">
+                <h3 class="text-lg font-black text-primary-900 mb-6 flex items-center gap-2 text-right">
+                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    دورة حياة العميل
+                </h3>
+                <div class="space-y-4">
+                    @php
+                        $statuses = \App\Models\Lead::lifecycleStatuses();
+                        $currentOrder = $statuses[$lead->status]['order'] ?? 1;
+                    @endphp
+                    @foreach($statuses as $key => $info)
+                        @php
+                            $isCurrent = $key === $lead->status;
+                            $isPast = $info['order'] < $currentOrder;
+                            $isFuture = $info['order'] > $currentOrder;
+                        @endphp
+                        <div class="flex items-center gap-3 {{ $isCurrent ? 'bg-primary-50 -mx-4 px-4 py-2 rounded-xl border border-primary-200' : '' }}">
+                            <div class="flex-shrink-0">
+                                @if($isCurrent)
+                                    <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg">
+                                        {{ $info['icon'] }}
+                                    </div>
+                                @elseif($isPast)
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-lg">
+                                        {{ $info['icon'] }}
+                                    </div>
+                                @else
+                                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-lg">
+                                        {{ $info['icon'] }}
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-1 text-right">
+                                <p class="font-bold text-sm {{ $isCurrent ? 'text-primary-900' : ($isPast ? 'text-green-700' : 'text-gray-400') }}">
+                                    {{ $info['label'] }}
+                                </p>
+                                @if($isCurrent)
+                                    <p class="text-xs text-primary-600">الحالة الحالية</p>
+                                @elseif($isPast)
+                                    <p class="text-xs text-green-600">تم إنجازها</p>
+                                @else
+                                    <p class="text-xs text-gray-400">قادمة</p>
+                                @endif
+                            </div>
+                            @if($isPast)
+                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
             <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-primary-100">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">حالة العميل الحالية</p>
                 <div class="text-center group">
-                    <span class="inline-block px-6 py-2 rounded-full text-sm font-black mb-4
-                        @if($lead->status === 'sold') bg-green-100 text-green-700
-                        @elseif($lead->status === 'cancelled') bg-red-100 text-red-700
-                        @elseif($lead->status === 'contacting') bg-primary-100 text-primary-700
-                        @else bg-primary-50 text-primary-700 @endif">
-                        {{ [
-                            'under_review' => 'تحت المراجعة',
-                            'contacting' => 'جاري التواصل',
-                            'sold' => 'تم البيع',
-                            'cancelled' => 'ملغي'
-                        ][$lead->status] ?? $lead->status }}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
+                        {{ \App\Models\Lead::statusLabel($lead->status) }}
                     </span>
                 </div>
 

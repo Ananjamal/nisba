@@ -34,6 +34,12 @@ class User extends Authenticatable
         'otp_code',
         'otp_expires_at',
         'promotion_plan',
+        'profile_image',
+        'referral_code',
+        'activity_log',
+        'password_changed_at',
+        'password_expiry',
+        'must_change_password',
     ];
 
     public function parent()
@@ -69,6 +75,10 @@ class User extends Authenticatable
             'bank_account_verified_at' => 'datetime',
             'otp_expires_at' => 'datetime',
             'promotion_plan' => 'array',
+            'activity_log' => 'array',
+            'password_changed_at' => 'datetime',
+            'password_expiry' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 
@@ -95,6 +105,16 @@ class User extends Authenticatable
     public function rankHistories()
     {
         return $this->hasMany(RankHistory::class);
+    }
+
+    public function deletionRequests()
+    {
+        return $this->hasMany(UserDeletionRequest::class);
+    }
+
+    public function referralLink()
+    {
+        return $this->hasOne(ReferralLink::class);
     }
 
     public function isAdmin()
@@ -162,5 +182,87 @@ class User extends Authenticatable
                 'reason' => 'ترقية تلقائية بناءً على الأداء (مبيعات: ' . $totalSales . '، قيمة: ' . $totalRevenue . ')',
             ]);
         }
+    }
+
+    public function logActivity($activity)
+    {
+        $log = $this->activity_log ?? [];
+        $log[] = [
+            'activity' => $activity,
+            'timestamp' => now()->toISOString(),
+            'ip' => request()->ip(),
+        ];
+        $this->update(['activity_log' => $log]);
+    }
+
+    public static function generateReferralCode()
+    {
+        do {
+            $code = strtoupper(substr(md5(uniqid()), 0, 8));
+        } while (self::where('referral_code', $code)->exists());
+
+        return $code;
+    }
+
+    public function getProfileImageUrlAttribute()
+    {
+        if (!$this->profile_image) {
+            return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        }
+
+        return asset('storage/' . $this->profile_image);
+    }
+
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    public function requestDeletion($requestedBy, $reason = null)
+    {
+        return $this->deletionRequests()->create([
+            'requested_by' => $requestedBy,
+            'reason' => $reason,
+            'status' => 'pending',
+            'current_approval_level' => 'manager',
+        ]);
+    }
+
+    public function isPasswordExpired()
+    {
+        return $this->password_expiry && $this->password_expiry->isPast();
+    }
+
+    public function mustChangePassword()
+    {
+        return $this->must_change_password || $this->isPasswordExpired();
+    }
+
+    public function getPasswordStrengthAttribute()
+    {
+        if (!$this->password) return 0;
+
+        $strength = 0;
+        $password = ''; // We can't check the hashed password directly
+
+        // This is a placeholder - in practice, you'd need to store password strength when password is set
+        return $strength;
+    }
+
+    public function forcePasswordChange()
+    {
+        $this->update([
+            'must_change_password' => true,
+            'password_changed_at' => null,
+        ]);
+    }
+
+    public function clearPasswordChangeRequirement()
+    {
+        $this->update([
+            'must_change_password' => false,
+            'password_changed_at' => now(),
+            'password_expiry' => now()->addDays(90), // Password expires in 90 days
+        ]);
     }
 }

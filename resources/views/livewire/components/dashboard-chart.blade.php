@@ -24,7 +24,7 @@
             },
             series: @js($initialData['series']),
             labels: @js($initialData['labels']),
-            colors: ['#16a34a'],
+            colors: @js($initialData['colors'] ?? ['#16a34a']),
             fill: {
                 type: 'gradient',
                 gradient: {
@@ -95,7 +95,8 @@
         Livewire.on('refreshChart-{{ $chartId }}', (data) => {
             this.chart.updateOptions({
                 series: data[0].series,
-                labels: data[0].labels
+                labels: data[0].labels,
+                colors: data[0].colors ? data[0].colors : undefined,
             });
         });
 
@@ -117,7 +118,7 @@
         });
     }
 }">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div class="flex items-center gap-3">
             <div class="w-2 h-8 bg-green-500 rounded-full"></div>
             <h3 class="text-xl font-extrabold text-[#14532d]">{{ $chartTitle }}</h3>
@@ -152,6 +153,65 @@
                 @endforeach
             </div>
         </div>
+    </div>
+
+    <div class="mb-8">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            @if($period === 'day')
+                <button type="button" wire:click="setDatePreset('today')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'today' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">اليوم</button>
+                <button type="button" wire:click="setDatePreset('yesterday')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'yesterday' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">أمس</button>
+            @elseif($period === 'week')
+                <button type="button" wire:click="setDatePreset('last_7_days')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'last_7_days' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">آخر 7 أيام</button>
+            @elseif($period === 'year')
+                <button type="button" wire:click="setDatePreset('this_year')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'this_year' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">هذه السنة</button>
+            @else
+                <button type="button" wire:click="setDatePreset('this_month')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'this_month' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">هذا الشهر</button>
+                <button type="button" wire:click="setDatePreset('last_month')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'last_month' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">الشهر السابق</button>
+                <button type="button" wire:click="setDatePreset('last_30_days')" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $datePreset === 'last_30_days' && !$useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">آخر 30 يوم</button>
+            @endif
+            <button type="button" wire:click="enableCustomDates" class="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 bg-gray-100/50 text-gray-600 hover:text-green-600" style="{{ $useCustomDates ? 'background-color:#16a34a;color:#fff;border-color:#16a34a;' : '' }}">مخصص</button>
+        </div>
+
+        @if($useCustomDates)
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">من</label>
+                    <input type="date" wire:model.defer="startDate" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">إلى</label>
+                    <input type="date" wire:model.defer="endDate" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div class="flex items-end">
+                    <button type="button" wire:click="applyDateFilter" class="w-full px-4 py-2 text-xs font-bold rounded-xl bg-green-600 text-white hover:bg-green-700 transition-colors">تطبيق</button>
+                </div>
+            </div>
+        @endif
+
+        <div class="flex items-center gap-2">
+            <input id="admin-cmp-{{ $chartId }}" type="checkbox" wire:model.live="enableComparison" class="rounded text-green-600 focus:ring-green-500">
+            <label for="admin-cmp-{{ $chartId }}" class="text-xs font-bold text-gray-700">مقارنة فترتين</label>
+        </div>
+
+        @if($enableComparison)
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+                <button type="button" wire:click="setComparisonToPreviousPeriod" class="px-4 py-2 text-xs font-bold rounded-xl bg-gray-100/50 text-gray-600 hover:text-green-600 transition-all">مقارنة بالفترة السابقة</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">من (المقارنة)</label>
+                    <input type="date" wire:model.defer="comparisonStartDate" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">إلى (المقارنة)</label>
+                    <input type="date" wire:model.defer="comparisonEndDate" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div class="flex items-end">
+                    <button type="button" wire:click="applyDateFilter" class="w-full px-4 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:border-green-500 hover:text-green-600 transition-colors">تحديث المقارنة</button>
+                </div>
+            </div>
+        @endif
     </div>
 
     <div wire:ignore x-ref="chart" class="min-h-[350px]"></div>
