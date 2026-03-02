@@ -172,6 +172,7 @@ class PasswordManagement extends Component
 
     public function render()
     {
-        return view('livewire.components.password-management');
+        $layout = request()->routeIs('admin.*') ? 'layouts.admin' : 'layouts.app';
+        return view('livewire.components.password-management')->layout($layout);
     }
 }

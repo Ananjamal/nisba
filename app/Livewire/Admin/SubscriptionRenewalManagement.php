@@ -221,7 +221,11 @@ class SubscriptionRenewalManagement extends Component
 
         // Log the activity
         if ($this->selectedRenewal->lead && method_exists($this->selectedRenewal->lead, 'logActivity')) {
-            $this->selectedRenewal->lead->logActivity("تم تجديد الاشتراك حتى: {$this->newExpiryDate}");
+            $this->selectedRenewal->lead->logActivity(
+                "تم تجديد الاشتراك حتى: {$this->newExpiryDate}",
+                'subscription_renewed',
+                ['amount' => $this->renewalAmount, 'notes' => $this->renewalNotes]
+            );
         }
 
         $this->showRenewalModal = false;
@@ -252,6 +256,16 @@ class SubscriptionRenewalManagement extends Component
             if ($renewal && $renewal->status === 'pending') {
                 $newExpiryDate = $renewal->renewal_date->addDays($this->bulkRenewalDays);
                 $renewal->markAsCompleted($newExpiryDate, $this->bulkRenewalAmount);
+
+                // Log activity for each lead in bulk
+                if ($renewal->lead) {
+                    $renewal->lead->logActivity(
+                        "تجديد اشتراك (جماعي) حتى: " . $newExpiryDate->format('Y-m-d'),
+                        'subscription_renewed',
+                        ['amount' => $this->bulkRenewalAmount]
+                    );
+                }
+
                 $renewedCount++;
             }
         }
@@ -280,6 +294,10 @@ class SubscriptionRenewalManagement extends Component
         if ($renewal) {
             $renewal->update(['status' => 'cancelled']);
             $renewal->lead->update(['subscription_status' => 'cancelled']);
+
+            // Log activity
+            $renewal->lead->logActivity("تم إلغاء طلب التجديد", 'status_changed');
+
             $this->dispatch('show-message', 'تم إلغاء التجديد');
         }
     }
@@ -312,6 +330,7 @@ class SubscriptionRenewalManagement extends Component
 
     public function getDaysLabel($days)
     {
+        $days = (int) $days;
         if ($days > 0) {
             return "متبقي {$days} يوم";
         } elseif ($days === 0) {
@@ -323,6 +342,7 @@ class SubscriptionRenewalManagement extends Component
 
     public function getDaysBadgeClass($days)
     {
+        $days = (int) $days;
         if ($days > 30) {
             return 'bg-green-100 text-green-800 border-green-200';
         } elseif ($days > 7) {

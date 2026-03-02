@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض فني ومالي استراتيجي - منصة حليـف</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --bg-light: #f7fafc;
+            --text-dark: #2d3748;
+            --success: #38a169;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            line-height: 1.9;
+            color: var(--text-dark);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 80px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(26, 54, 93, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(49, 130, 206, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(102, 126, 234, 0.02) 0%, transparent 50%);
+        }
+
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 100%;
+            background: var(--primary);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 3.2em;
+            font-weight: 900;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            color: var(--secondary);
+            font-size: 2em;
+            margin-top: 60px;
+            border-bottom: 2px solid var(--bg-light);
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            color: var(--accent);
+            font-size: 1.5em;
+            margin-top: 40px;
+            display: inline-block;
+            background: #ebf8ff;
+            padding: 5px 20px;
+            border-radius: 50px;
+        }
+
+        h4 {
+            color: var(--primary);
+            font-size: 1.25em;
+            margin-top: 30px;
+        }
+
+        p, li {
+            font-size: 1.2em;
+            color: #4a5568;
+        }
+
+        .summary-box {
+            background: var(--bg-light);
+            border: 1px solid #e2e8f0;
+            padding: 30px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+
+        .summary-item {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .summary-item strong {
+            display: block;
+            font-size: 1.4em;
+            color: var(--primary);
+        }
+
+        .tech-pill {
+            display: inline-block;
+            background: #edf2f7;
+            padding: 5px 15px;
+            border-radius: 8px;
+            margin: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: var(--secondary);
+        }
+
+        .highlight-box {
+            background: #ebf8ff;
+            border-right: 4px solid var(--accent);
+            padding: 20px 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: #2c5282;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .info-card {
+            background: var(--bg-light);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .info-card .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .info-card strong {
+            display: block;
+            color: var(--primary);
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .info-card p {
+            font-size: 1em;
+            margin: 0;
+            color: #718096;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 40px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        table th {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        table td {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .price-row {
+            background: #fffaf0;
+            font-weight: 900;
+            font-size: 1.4em;
+            color: #c05621;
+        }
+
+        .lifecycle {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .lifecycle-step {
+            background: white;
+            border: 1px solid #cbd5e0;
+            padding: 15px;
+            text-align: center;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 10px 0;
+            margin: 30px 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            align-items: flex-start;
+        }
+
+        .timeline-number {
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1em;
+            flex-shrink: 0;
+        }
+
+        .timeline-content {
+            flex: 1;
+            background: var(--bg-light);
+            padding: 15px 20px;
+            border-radius: 10px;
+        }
+
+        .timeline-content strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .timeline-content p {
+            margin: 0;
+            font-size: 1.05em;
+        }
+
+        .footer {
+            margin-top: 100px;
+            text-align: center;
+            padding-top: 40px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .badge-premium {
+            background: #ffd700;
+            color: #000;
+            font-size: 0.5em;
+            padding: 2px 10px;
+            border-radius: 5px;
+            vertical-align: middle;
+            margin-right: 15px;
+        }
+
+        .price-section {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            border-radius: 20px;
+            padding: 50px;
+            margin-top: 60px;
+            color: white;
+        }
+
+        .price-section h2 {
+            color: white;
+            border-bottom-color: rgba(255,255,255,0.2);
+            margin-top: 0;
+        }
+
+        .price-section table th {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .price-section table td {
+            color: white;
+            border-bottom-color: rgba(255,255,255,0.1);
+        }
+
+        .price-section table {
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .price-section .price-row {
+            background: rgba(255, 215, 0, 0.15);
+            color: #ffd700;
+        }
+
+        .payment-terms {
+            background: rgba(255,255,255,0.1);
+            border: 1px dashed rgba(255,255,255,0.4);
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .payment-terms h4 {
+            color: #ffd700;
+            margin-top: 0;
+        }
+
+        .payment-terms p {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .total-badge {
+            text-align: center;
+            margin-top: 30px;
+            padding: 30px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 16px;
+            border: 2px solid #ffd700;
+        }
+
+        .total-badge .amount {
+            font-size: 3em;
+            font-weight: 900;
+            color: #ffd700;
+            display: block;
+        }
+
+        .total-badge .label {
+            font-size: 1.2em;
+            color: rgba(255,255,255,0.8);
+        }
+
+        @media (max-width: 768px) {
+            body { 
+                padding: 20px 10px; 
+            }
+
+            .container { 
+                padding: 35px 20px; 
+                border-radius: 12px; 
+            }
+
+            .container::before { 
+                width: 6px; 
+            }
+
+            header { 
+                margin-bottom: 40px; 
+            }
+
+            h1 { 
+                font-size: 2.2em; 
+            }
+
+            h2 { 
+                font-size: 1.7em; 
+                margin-top: 40px; 
+            }
+
+            h3 { 
+                font-size: 1.3em; 
+            }
+
+            p, li { 
+                font-size: 1.1em; 
+            }
+
+            .summary-box { 
+                padding: 20px; 
+                gap: 20px; 
+            }
+
+            .summary-item { 
+                min-width: 130px; 
+            }
+
+            .info-grid { 
+                grid-template-columns: 1fr; 
+            }
+
+            .lifecycle { 
+                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
+                gap: 10px;
+            }
+
+            .lifecycle-step {
+                padding: 10px;
+                font-size: 0.85em;
+            }
+
+            .price-section { 
+                padding: 30px 15px; 
+            }
+
+            .total-badge .amount { 
+                font-size: 2.2em; 
+            }
+
+            .total-badge {
+                padding: 20px;
+            }
+
+            table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table th, table td {
+                padding: 12px 15px;
+                font-size: 0.95em;
+                white-space: nowrap;
+            }
+
+            .timeline-item {
+                gap: 12px;
+            }
+
+            .timeline-number {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9em;
+            }
+
+            .footer {
+                margin-top: 60px;
+            }
+        }
+
+        @media print {
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; border: none; padding: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div style="text-align: center; margin-bottom: 40px;">
+                <div style="display: inline-block; background: linear-gradient(135deg, #1a365d 0%, #3182ce 100%); color: white; padding: 15px 40px; border-radius: 50px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(26, 54, 93, 0.3);">
+                    <span style="font-size: 1.2em; font-weight: 700;">🏆 عرض سعر 🏆</span>
+                </div>
+            </div>
+            <h1>مشروع "حليـف" الاستراتيجي</h1>
+            <p style="font-size: 1.5em; color: #718096; font-weight: 600;">بوابتكم الذكية لعالم التسويق الشبكي والعمولات</p>
+            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
+                <p style="margin: 0; font-size: 1.1em; font-weight: 500;">✨ حل متكامل ومبتكر لإدارة التسويق الشبكي بأعلى معايير الجودة والأمان</p>
+            </div>
+        </header>
+
+        <div class="summary-box" style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); border: 2px solid #e2e8f0; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); border-radius: 50%; opacity: 0.1;"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: linear-gradient(135deg, #3182ce 0%, #63b3ed 100%); border-radius: 50%; opacity: 0.1;"></div>
+            <div class="summary-item" style="position: relative; z-index: 1;">تاريخ العرض <strong style="color: #1a365d; font-size: 1.6em;">فبراير 2026</strong></div>
+            <div class="summary-item" style="position: relative; z-index: 1;">الميزانية <strong style="color: #38a169; font-size: 1.6em;">$2,300 USD</strong></div>
+            <div class="summary-item" style="position: relative; z-index: 1;">مدة التنفيذ <strong style="color: #d69e2e; font-size: 1.6em;">5 أسابيع</strong></div>
+            <div class="summary-item" style="position: relative; z-index: 1;">نموذج الدفع <strong style="color: #e53e3e; font-size: 1.6em;">30 / 40 / 30</strong></div>
+        </div>
+
+        <!-- ===== المزايا التنافسية ===== -->
+        <section style="margin: 60px 0;">
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h3 style="color: #1a365d; font-size: 2em; margin-bottom: 15px;">🌟 لماذا منصة "حليف" هي الخيار الأمثل؟</h3>
+                <p style="color: #4a5568; font-size: 1.1em;">ميزات تنافسية تفوق أي حل آخر في السوق</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin: 40px 0;">
+                <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 30px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -10px; right: -10px; width: 60px; height: 60px; background: linear-gradient(135deg, #38a169 0%, #68d391 100%); border-radius: 50%; opacity: 0.1;"></div>
+                    <div style="font-size: 2.5em; margin-bottom: 15px; position: relative; z-index: 1;">⚡</div>
+                    <h4 style="color: #1a365d; margin-bottom: 10px; position: relative; z-index: 1;">سرعة فائقة</h4>
+                    <p style="color: #4a5568; font-size: 0.95em; margin: 0; position: relative; z-index: 1;">محرك تتبع يعمل بأقل من 100ms مع واجهات فورية الاستجابة</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 30px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -10px; right: -10px; width: 60px; height: 60px; background: linear-gradient(135deg, #3182ce 0%, #63b3ed 100%); border-radius: 50%; opacity: 0.1;"></div>
+                    <div style="font-size: 2.5em; margin-bottom: 15px; position: relative; z-index: 1;">🔒</div>
+                    <h4 style="color: #1a365d; margin-bottom: 10px; position: relative; z-index: 1;">أمان مطلق</h4>
+                    <p style="color: #4a5568; font-size: 0.95em; margin: 0; position: relative; z-index: 1;">تشفير متقدم مع OTP وحماية من الاحتيال</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 30px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -10px; right: -10px; width: 60px; height: 60px; background: linear-gradient(135deg, #d69e2e 0%, #f6e05e 100%); border-radius: 50%; opacity: 0.1;"></div>
+                    <div style="font-size: 2.5em; margin-bottom: 15px; position: relative; z-index: 1;">📈</div>
+                    <h4 style="color: #1a365d; margin-bottom: 10px; position: relative; z-index: 1;">نمو فيروسي</h4>
+                    <p style="color: #4a5568; font-size: 0.95em; margin: 0; position: relative; z-index: 1;">نظام رتب محفز وبرنامج سفراء للتوسع السريع</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 30px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -10px; right: -10px; width: 60px; height: 60px; background: linear-gradient(135deg, #e53e3e 0%, #fc8181 100%); border-radius: 50%; opacity: 0.1;"></div>
+                    <div style="font-size: 2.5em; margin-bottom: 15px; position: relative; z-index: 1;">🎯</div>
+                    <h4 style="color: #1a365d; margin-bottom: 10px; position: relative; z-index: 1;">دقة متناهية</h4>
+                    <p style="color: #4a5568; font-size: 0.95em; margin: 0; position: relative; z-index: 1;">تتبع 9 مراحل للعميل وتقارير مفصلة</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== القسم الأول ===== -->
+        <section>
+            <h2>أولاً: محرك التتبع الذكي (Tracking Engine)</h2>
+
+            <h3>1. كيف يعمل نظام التتبع؟</h3>
+            <p>
+                يعمل نظام <strong>"حليف"</strong> بمثابة رادار بيعي متكامل. عند مشاركة المسوّق لرابطه الخاص، يبدأ النظام على الفور في تحليل كل "نقرة" تصل عبر تقنيات <strong>Middleware</strong> متطورة. هذه التقنية تعمل في الخلفية بشكل غير محسوس، وتتولى مهمة التحقق والتسجيل والتوجيه في أقل من لحظة.
+            </p>
+            <p>
+                الهدف الأساسي هو ضمان أن كل عملية بيع تُنسب لصاحبها الحقيقي بدقة مطلقة، مما يبني ثقة راسخة بين المسوّقين وإدارة المنصة.
+            </p>
+
+            <h4>ما الذي يسجله النظام في كل نقرة؟</h4>
+            <ul class="feature-list">
+                <li><strong>عنوان الـ IP:</strong> لرصد أي محاولة تلاعب أو نقرات وهمية (Fraud Detection)، مما يحمي ميزانيتكم من الإنفاق على زيارات غير حقيقية.</li>
+                <li><strong>بصمة الجهاز (Device Fingerprint):</strong> تحديد نوع الجهاز ونظام التشغيل والمتصفح لفهم الشريحة الجمهورية المستهدفة وتحسين استراتيجية التسويق مستقبلاً.</li>
+                <li><strong>وقت الوصول والمصدر:</strong> تسجيل متى وصل العميل ومن أي منصة (واتساب، انستقرام، إعلان...) لمنح تقارير دقيقة عن أفضل قنوات التسويق.</li>
+                <li><strong>التوجيه الفوري (Smart Redirect):</strong> إيصال العميل لصفحة الوجهة في أقل من 100ms حتى لا يشعر بأي تأخير يُفسد تجربته.</li>
+            </ul>
+
+            <div class="highlight-box">
+                <p>
+                    💡 <strong>لماذا هذا مهم لكم؟</strong> — بدون نظام تتبع دقيق، لا يمكن لأي مسوّق أن يثق بعمولاته، ولا يمكن لكم إثبات عدالة المنصة. هذا المحرك هو أساس الثقة بأكملها.
+                </p>
+            </div>
+
+            <h3>2. خوارزمية الرتب ومضاعف الربح (Rank Algorithm)</h3>
+            <p>
+                صممنا نظاماً يحفز المسوقين آلياً عبر ما نسميه <strong>"مضاعف الربح الديناميكي"</strong>. الفكرة بسيطة وذكية: كل مبيعة تُضيف نقاطاً للمسوّق، وكل مجموعة نقاط ترفعه لرتبة أعلى.
+            </p>
+            <p>
+                ليست مجرد شارات تحفيزية — بل كل رتبة تفتح للمسوّق <strong>نسبة عمولة أعلى برمجياً</strong>، مما يخلق دافعاً حقيقياً للاستمرار والنمو:
+            </p>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="icon">🥉</div>
+                    <strong>برونزي</strong>
+                    <p>نسبة عمولة أساسية</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🥈</div>
+                    <strong>فضي</strong>
+                    <p>عمولة مُحسّنة + مزايا إضافية</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🥇</div>
+                    <strong>ذهبي</strong>
+                    <p>أعلى نسبة + أولوية في الدعم</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">💎</div>
+                    <strong>بلاتيني</strong>
+                    <p>عمولة قياسية + صلاحيات قيادية</p>
+                </div>
+            </div>
+            <p>
+                هذا النظام يُحوّل المسوّق من مجرد موظف بالعمولة إلى <strong>شريك استراتيجي</strong> لديه هدف واضح وطريق مرسوم للنمو داخل منصتكم.
+            </p>
+        </section>
+
+        <!-- ===== القسم الثاني ===== -->
+        <section>
+            <h2>ثانياً: هندسة الشبكات والنمو (Networking)</h2>
+
+            <h3>1. نظام بناء الفرق والعمولة الهرمية</h3>
+            <p>
+                يتميز نظام <strong>"حليف"</strong> بالقدرة على التوسع الفيروسي (Viral Growth). المسوّق لديه القدرة على دعوة أشخاص آخرين للانضمام تحت قيادته، وبذلك يُصبح "قائد فريق". هذا يخلق طبقات من الشبكة التسويقية دون أي تكلفة إضافية عليكم.
+            </p>
+            <p>
+                النظام يحتسب تلقائياً عمولة <strong>5%</strong> للقائد من إجمالي مبيعات فريقه بالكامل. كل عملية بيع يُجريها أي عضو في الفريق تُدرّ ربحاً للقائد — وهكذا تتحول المنصة إلى <strong>ماكينة مبيعات تعمل ذاتياً</strong> على مدار الساعة.
+            </p>
+
+            <div class="highlight-box">
+                <p>
+                    📊 <strong>مثال عملي:</strong> إذا كان للقائد فريق من 20 مسوّقاً، وحقق كل مسوّق مبيعات بقيمة 1,000 ريال شهرياً، فإن القائد يحصل تلقائياً على <strong>1,000 ريال شهرياً</strong> (5% × 20 × 1,000) — دون أي جهد مباشر منه، طالما أن فريقه يعمل.
+                </p>
+            </div>
+
+            <h3>2. دورة حياة العميل الذكية (9 مراحل)</h3>
+            <p>
+                من أقوى ميزات "حليف" أنه لا يكتفي بتسجيل العميل والانتهاء — بل يتتبع العميل في كل خطوة من رحلته حتى إتمام البيع أو رفضه. هذا يمنح المسوّق والإدارة رؤية كاملة وشفافة على كل صفقة:
+            </p>
+            <div class="lifecycle">
+                <div class="lifecycle-step" style="border-right: 3px solid #3182ce;">🆕 جديد</div>
+                <div class="lifecycle-step">📞 تواصل أول</div>
+                <div class="lifecycle-step">🔄 مكالمة جارية</div>
+                <div class="lifecycle-step">📅 موعد</div>
+                <div class="lifecycle-step">💰 عرض سعر</div>
+                <div class="lifecycle-step">🤝 تفاوض</div>
+                <div class="lifecycle-step">⏸️ معلق</div>
+                <div class="lifecycle-step" style="background: #f0fff4; border: 2px solid #38a169;">✅ تم البيع</div>
+                <div class="lifecycle-step" style="background: #fff5f5; border: 2px solid #e53e3e;">❌ مرفوض</div>
+            </div>
+            <p>
+                هذا التتبع الدقيق يمنحكم <strong>قاعدة بيانات عملاء ثرية</strong> يمكن الاستفادة منها لاحقاً في إعادة الاستهداف، تحليل أسباب الرفض، وتحسين عروض المبيعات المستقبلية.
+            </p>
+
+            <h3>3. لوحة تحكم المسوّق (Affiliate Dashboard)</h3>
+            <p>
+                كل مسوّق يمتلك لوحة تحكم خاصة به تُظهر له في الوقت الفعلي:
+            </p>
+            <ul class="feature-list">
+                <li>إجمالي عمولاته المستحقة والمدفوعة.</li>
+                <li>قائمة عملائه وحالة كل عميل في دورة الحياة.</li>
+                <li>إحصائيات فريقه وأداء كل عضو.</li>
+                <li>رابطه التسويقي الخاص وعدد النقرات التي تلقاها.</li>
+                <li>رتبته الحالية والنقاط المطلوبة للوصول لمستوى أعلى.</li>
+            </ul>
+        </section>
+
+        <!-- ===== القسم الثالث ===== -->
+        <section>
+            <h2>ثالثاً: البنية التقنية والأمان (Infrastructure)</h2>
+
+            <h3>1. المنظومة التقنية المُختارة</h3>
+            <div style="margin: 20px 0;">
+                <span class="tech-pill">Laravel 12 (Core)</span>
+                <span class="tech-pill">Livewire 3 (Reactive UI)</span>
+                <span class="tech-pill">MySQL 8 (Optimized)</span>
+                <span class="tech-pill">Tax Engine (Withdrawals)</span>
+                <span class="tech-pill">Audit Trail (Activity Logs)</span>
+                <span class="tech-pill">Subscription Renewals</span>
+                <span class="tech-pill">Redis (Caching)</span>
+                <span class="tech-pill">Queue Jobs (Async)</span>
+            </div>
+            <p>
+                اخترنا <strong>Laravel 12</strong> كإطار عمل أساسي لأنه يوفر بنية قوية ومحكمة مع سرعة تطوير عالية. تم دمج <strong>محرك ضرائب متقدم</strong> لاحتساب العمولات الصافية بدقة، مع نظام <strong>Activity Logs</strong> شامل لتتبع كل حركة في المنصة لضمان الشفافية المطلقة.
+            </p>
+
+            <h3>2. منظومة الأمان والشفافية</h3>
+            <p>
+                النظام ليس مجرد واجهة جميلة؛ بل هو منظومة أمان شاملة تضمن حماية كل ريال وكل بيانة:
+            </p>
+            <ul class="feature-list">
+                <li>
+                    <strong>سجلات النشاط (Activity Logs):</strong> كل إجراء يقوم به الموظف — من تعديل عمولة إلى تغيير حالة عميل — يُسجَّل تلقائياً بالتاريخ والوقت وهوية المستخدم. لا يمكن لأحد التلاعب بأي بيانات دون أثر موثق.
+                </li>
+                <li>
+                    <strong>نظام OTP للعمليات المالية:</strong> أي سحب أو تحويل مالي يستلزم تأكيداً برمز يُرسل للهاتف، مما يحمي حسابات المسوقين من أي اختراق.
+                </li>
+                <li>
+                    <strong>التنبيهات الفورية (Real-time Notifications):</strong> إشعارات تصل فوراً للهاتف والبريد الإلكتروني عند أي عملية مهمة: بيعة جديدة، عمولة مضافة، طلب سحب.
+                </li>
+                <li>
+                    <strong>Redis للتخزين المؤقت:</strong> يضمن سرعة استجابة فائقة حتى مع آلاف المستخدمين المتزامنين.
+                </li>
+                <li>
+                    <strong>Queue Jobs للعمليات الثقيلة:</strong> إرسال التقارير والإشعارات يتم في الخلفية دون التأثير على تجربة المستخدم.
+                </li>
+            </ul>
+
+            <h3>3. بنية الصلاحيات متعددة المستويات</h3>
+            <p>
+                يدعم النظام تعدد الأدوار بشكل مرن:
+            </p>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="icon">👑</div>
+                    <strong>السوبر أدمن</strong>
+                    <p>صلاحيات كاملة وتحكم بكل شيء</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">👨‍💼</div>
+                    <strong>المدير</strong>
+                    <p>إدارة المسوقين والتقارير</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🏆</div>
+                    <strong>قائد الفريق</strong>
+                    <p>متابعة فريقه وعملائه</p>
+                </div>
+                <div class="info-card">
+                    <div class="icon">🤝</div>
+                    <strong>المسوّق</strong>
+                    <p>روابطه وعملاؤه فقط</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== القسم الرابع ===== -->
+        <section>
+            <h2>رابعاً: مراحل التنفيذ والتسليم</h2>
+            <p>
+                يُنفَّذ المشروع عبر <strong>5 مراحل متتالية</strong> خلال 5 أسابيع، بحيث يكون كل أسبوع يمثل تسليماً فعلياً ملموساً يمكنكم اختباره والموافقة عليه قبل الانتقال للمرحلة التالية:
+            </p>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-number">1</div>
+                    <div class="timeline-content">
+                        <strong>الأسبوع الأول — التأسيس وهيكل النظام</strong>
+                        <p>بناء قاعدة البيانات، نظام الأدوار والصلاحيات، تصميم هوية الواجهة، وإعداد البيئة التقنية الكاملة.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-number">2</div>
+                    <div class="timeline-content">
+                        <strong>الأسبوع الثاني — محرك التتبع وبوابة المسوّق</strong>
+                        <p>تطوير نظام الروابط الذكية، محرك التتبع بالـ Middleware، لوحة تحكم المسوّق الكاملة مع الإحصائيات الفورية.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-number">3</div>
+                    <div class="timeline-content">
+                        <strong>الأسبوع الثالث — محرك العملاء والعمولات</strong>
+                        <p>بناء دورة حياة العميل الكاملة (9 مراحل)، خوارزمية احتساب العمولات، ونظام الرتب الديناميكي.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-number">4</div>
+                    <div class="timeline-content">
+                        <strong>الأسبوع الرابع — النظام المالي وبناء الفرق</strong>
+                        <p>إدارة المحافظ المالية، نظام طلبات السحب مع OTP، بناء شبكة الفرق الهرمية، ومحرك الإشعارات الفورية.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-number">5</div>
+                    <div class="timeline-content">
+                        <strong>الأسبوع الخامس — التقارير والنشر والتدريب</strong>
+                        <p>لوحة تقارير الإدارة الشاملة، النشر على السيرفر الفعلي (Deployment)، اختبارات الجودة، وجلسة تدريب مباشرة على النظام.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== القسم الخامس - عرض السعر في النهاية ===== -->
+        <div class="price-section">
+            <h2>خامساً: الاستثمار المالي وشروط الدفع</h2>
+
+            <p style="color: rgba(255,255,255,0.85); font-size: 1.15em;">
+                فيما يلي التفصيل الكامل للاستثمار المطلوب لكل مرحلة من مراحل بناء منصة "حليف". السعر يشمل التطوير والتصميم والاختبار والنشر والتدريب — بدون أي تكاليف خفية.
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>المرحلة</th>
+                        <th>الوصف والمخرجات الرئيسية</th>
+                        <th>الاستثمار</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>المرحلة 1 & 2</td>
+                        <td>التأسيس، محرك التتبع الذكي، وبوابة المسوّق الكاملة</td>
+                        <td><strong>$750</strong></td>
+                    </tr>
+                    <tr>
+                        <td>المرحلة 3</td>
+                        <td>محرك العملاء (9 مراحل)، العمولات، ونظام الرتب</td>
+                        <td><strong>$550</strong></td>
+                    </tr>
+                    <tr>
+                        <td>المرحلة 4</td>
+                        <td>النظام المالي، بناء الفرق الهرمي، ومحرك التنبيهات</td>
+                        <td><strong>$650</strong></td>
+                    </tr>
+                    <tr>
+                        <td>المرحلة 5</td>
+                        <td>التقارير الشاملة، النشر الفعلي، والتدريب المباشر</td>
+                        <td><strong>$350</strong></td>
+                    </tr>
+                    <tr class="price-row">
+                        <td colspan="2">✨ الإجمالي النهائي للاستثمار</td>
+                        <td>$2,300 USD</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="total-badge">
+                <span class="amount">$2,300 USD</span>
+                <span class="label">إجمالي الاستثمار — منصة جاهزة ومُسلَّمة بالكامل</span>
+            </div>
+
+            <div class="payment-terms">
+                <h4>📋 شروط الدفع (30 / 40 / 30):</h4>
+                <p>
+                    <strong style="color: #ffd700;">$690</strong> مقدم عند توقيع العقد وبدء العمل
+                    &nbsp;|&nbsp;
+                    <strong style="color: #ffd700;">$920</strong> عند إتمام المرحلة الثالثة وتسليمها
+                    &nbsp;|&nbsp;
+                    <strong style="color: #ffd700;">$690</strong> عند التسليم النهائي وجلسة التدريب
+                </p>
+                <p style="font-size: 1em; color: rgba(255,255,255,0.7); margin-bottom: 0;">
+                    * شرط الدفعة الثانية مرتبط بتسليم فعلي وموافقتكم على المرحلة الثالثة — لا ندفتر قرشاً قبل إنجاز المتفق عليه.
+                </p>
+            </div>
+        </div>
+
+        <!-- ===== القسم السادس - معرض الواجهات والنماذج ===== -->
+        <section style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 60px; border-radius: 20px; margin: 40px 0; border: 1px solid #cbd5e0;">
+            <div style="text-align: center; margin-bottom: 50px;">
+                <div style="display: inline-block; background: linear-gradient(135deg, #1a365d 0%, #3182ce 100%); color: white; padding: 10px 30px; border-radius: 30px; margin-bottom: 15px; box-shadow: 0 5px 20px rgba(26, 54, 93, 0.3);">
+                    <span style="font-size: 1em; font-weight: 600;">🎨 LIVE DEMONSTRATION</span>
+                </div>
+            </div>
+            <h2 style="text-align: center; color: #1a365d; font-size: 2.5em; margin-bottom: 20px;">سادساً: معرض الواجهات التطبيقية والنماذج المرئية</h2>
+            <p style="color: #4a5568; font-size: 1.2em; text-align: center; max-width: 800px; margin: 0 auto 50px;">
+                فيما يلي مجموعة مختارة من الواجهات الفعلية التي تم تطويرها لمنصة "حليف"، تعرض كل من لوحات التحكم الإدارية ولوحة تحكم المسوق:
+            </p>
+
+            <h4 style="color: #1a365d; font-size: 1.4em; margin-top: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+                🎛️ لوحات التحكم الإدارية (للإدارة فقط)
+            </h4>
+            <p style="color: #4a5568; font-size: 1.1em; margin-bottom: 30px;">
+                الواجهات التالية خاصة بالإدارة وتوفر تحكماً كاملاً في جميع جوانب المنصة:
+            </p>
+
+            <!-- الصفحة الرئيسية للإدارة -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    📊 الصفحة الرئيسية للإدارة - لوحة القيادة
+                </h3>
+                <img src="public/images/proposal/الصفحة الرئيسية (ادارة).png" 
+                     alt="الصفحة الرئيسية للإدارة" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>نظرة شاملة على أداء المنصة:</strong> لوحة القيادة الرئيسية للإدارة تعرض أهم المؤشرات والإحصائيات الحية للمنصة. 
+                    تشمل <strong>الرسوم البيانية التفاعلية</strong> لعرض نمو العملاء شهرياً، توزيع العملاء حسب الحالة (تحت المراجعة، تم البيع، مرفوض)، 
+                    وأداء المسوقين الأوائل. تعرض اللوحة أيضاً إجمالي العمولات المستحقة، عدد الطلبات المعلقة، والإيرادات الشهرية. 
+                    <strong>البيانات تُحدث فورياً</strong> وتوفر للإدارة صورة كاملة عن صحة المنصة وأدائها.
+                </p>
+            </div>
+
+            <!-- واجهة إدارة العملاء -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    📊 واجهة إدارة العملاء المتقدمة
+                </h3>
+                <img src="public/images/proposal/ادارة العملاء(ادارة).png" 
+                     alt="واجهة إدارة العملاء" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>نظرة شاملة على إدارة العملاء:</strong> واجهة احترافية تعرض جميع العملاء مع إمكانية التصفية والبحث المتقدم. 
+                    كل عميل يظهر مع حالته الحالية (تحت المراجعة، تم البيع، مرفوض)، بيانات الاتصال، والمسوق المسؤول عنه. 
+                    النظام يدعم التصنيف حسب المدينة وتاريخ الإضافة، مع إحصائيات فورية عن إجمالي العملاء النشطين.
+                </p>
+            </div>
+
+            <!-- واجهة المسوقين -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🏆 واجهة إدارة المسوقين المتقدمة
+                </h3>
+                <img src="public/images/proposal/ادارة المسوقين(ادارة).png" 
+                     alt="لوحة تحكم المسوقين" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>إدارة فريق التسويق بذكاء:</strong> واجهة متكاملة لإدارة جميع المسوقين مع عرض بياناتهم الشخصية، 
+                    معلومات الاتصال، القطاعات التي يعملون بها، وعدد العملاء في كل فريق. النظام يتيح تعديل بيانات المسوقين 
+                    وتحديث أدوارهم الوظيفية بسهولة، مع إحصائيات دقيقة عن أداء كل مسوق.
+                </p>
+            </div>
+
+            <!-- واجهة رتب المسوقين -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🎖️ نظام الرتب ومضاعفات العمولة
+                </h3>
+                <img src="public/images/proposal/رتب المسوقين (ادارة).png" 
+                     alt="نظام الرتب" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تحفيز المسوقين عبر التدرج الهرمي:</strong> نظام رتب ذكي يعرض ثلاث مستويات (برونزي، فضي، ذهبي) 
+                    مع مضاعفات عمولة مختلفة. يمكن للإدارة تغيير رتبة أي مسوق بسهولة، مما يؤثر تلقائياً على نسبة عمولاته. 
+                    النظام يحفز المسوقين على التميز والنمو المستمر داخل المنصة.
+                </p>
+            </div>
+
+            <!-- واجهة طلبات السحب -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    💳 نظام طلبات السحب المالي الآمن
+                </h3>
+                <img src="public/images/proposal/ادارة طلبات السحب(ادارة).png" 
+                     alt="طلبات السحب" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>إدارة العمليات المالية بشفافية:</strong> واجهة متقدمة لمعالجة طلبات سحب العمولات مع عرض 
+                    تفاصيل كل طلب (المبلغ، البيانات البنكية، الحالة). النظام يمر بمراحل متعددة (طلب، مراجعة، اعتماد مالي، تحويل) 
+                    مع إمكانية رفض الطلب مع سبب واضح، مما يضمن الشفافية الكاملة في جميع المعاملات المالية.
+                </p>
+            </div>
+
+            <!-- واجهة إدارة الخدمات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ⚙️ مركز إدارة الخدمات المتكاملة
+                </h3>
+                <img src="public/images/proposal/ادارة الخدمات(ادارة).png" 
+                     alt="إدارة الخدمات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تحكم كامل في الخدمات المعروضة:</strong> واجهة إدارية لإدارة جميع الخدمات والأنظمة المتكاملة في المنصة. 
+                    يمكن إضافة خدمات جديدة، تعديل الخدمات الحالية، مع عرض شعار واسم كل خدمة (قيود، دفترة، زهو). 
+                    النظام يدعم التكامل مع منصات خارجية لتوسيع نطاق الخدمات المقدمة للعملاء.
+                </p>
+            </div>
+
+            <!-- واجهة إدارة القطاعات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🏢 نظام إدارة القطاعات والأنشطة
+                </h3>
+                <img src="public/images/proposal/ادارة القطاعات(ادارة).png" 
+                     alt="إدارة القطاعات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تنظيم القطاعات التجارية بكفاءة:</strong> واجهة متخصصة لإدارة جميع القطاعات والأنشطة التجارية في المنصة. 
+                    يمكن إضافة قطاعات جديدة، تعديل القطاعات الحالية، مع تحديد الخدمات المتاحة لكل قطاع. 
+                    النظام يتيح تصنيف العملاء والمسوقين حسب القطاعات، مما يسهل إدارة التقارير والإحصائيات بشكل منظم.
+                </p>
+            </div>
+
+            <!-- واجهة الموظفين -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    👥 نظام إدارة الموظفين والأدوار
+                </h3>
+                <img src="public/images/proposal/ادارة موظفين(ادارة).png" 
+                     alt="إدارة الموظفين" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تنظيم الفريق الداخلي بكفاءة:</strong> واجهة شاملة لإدارة جميع الموظفين مع عرض بياناتهم الكاملة، 
+                    أدوارهم الوظيفية، وتاريخ انضمامهم. النظام يدعم تعدد الأدوار (admin، employee) مع إمكانية تحديث الصلاحيات 
+                    وإدارة الحالة النشطة لكل موظف، مما يضمن تنظيم العمل الداخلي بكفاءة عالية.
+                </p>
+            </div>
+
+            <!-- واجهة الأدوار والصلاحيات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🔐 مركز التحكم بالصلاحيات والأدوار
+                </h3>
+                <img src="public/images/proposal/الادوار والصلاحيات(ادارة).png" 
+                     alt="الأدوار والصلاحيات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>أمان متعدد المستويات:</strong> نظام متقدم لإدارة الأدوار والصلاحيات مع إمكانية إنشاء أدوار مخصصة 
+                    وتحديد الصلاحيات الدقيقة لكل دور. يمكن التحكم في الوصول لكل قسم (لوحة التحكم، التقارير، العملاء، المسوقين) 
+                    مع عرض عدد المستخدمين لكل دور، مما يضمن أمان البيانات وحماية النظام.
+                </p>
+            </div>
+
+            
+            
+            <!-- واجهة برنامج السفراء -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🌟 برنامج السفراء التسويقي
+                </h3>
+                <img src="public/images/proposal/فريق التسويق(مسوق).png" 
+                     alt="برنامج السفراء" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>توسيع الفريق التسويقي بذكاء:</strong> واجهة برنامج السفراء التي تمكن المسوق من دعوة مسوقين جدد 
+                    والحصول على عمولة ثابتة 5% من مبيعات الفريق. تعرض الروابط الذكية للدعوة، إحصائيات الفريق، 
+                    وتحفيزات مستمرة لبناء إمبراطورية تسويقية متكاملة.
+                </p>
+            </div>
+
+            <!-- واجهات المصادقة -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    👥 نظام إدارة المستخدمين والموظفين
+                </h3>
+                <img src="public/images/proposal/ادارة المستخدمين (ادارة).png" 
+                     alt="المصادقة" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>حماية الحسابات بأعلى معايير الأمان:</strong> نظام مصادقة متكامل يشمل تسجيل الدخول بالبريد أو الهاتف، 
+                    التحقق الثنائي عبر OTP، تذكر الجلسة، واستعادة كلمة المرور. واجهات تسجيل الدخول والإنشاء مصممة 
+                    لتكون بسيطة وآمنة مع حماية من الاختراقات والوصول غير المصرح به.
+                </p>
+            </div>
+
+            <!-- واجهة التسجيل -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    📝 نموذج انضمام المسوقين الجدد
+                </h3>
+                <img src="public/images/proposal/ااضافة او تعديل مسوق(ادارة).png" 
+                     alt="التسجيل" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>بوابة الانضمام لمنصة حليف:</strong> نموذج تسجيل شامل للمسوقين الجدد يجمع البيانات الأساسية 
+                    (الاسم، الهاتف، البريد، كلمة المرور) مع تحديد قنوات التسويق المستخدمة (وسائل التواصل، الموقع، الإعلانات المدفوعة). 
+                    النظام يضمن جمع المعلومات اللازمة لتقييم وتوجيه المسوقين الجدد بفعالية.
+                </p>
+            </div>
+
+            <!-- واجهة إضافة عميل (للإدارة) -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ➕ نموذج إضافة عميل (واجهة الإدارة)
+                </h3>
+                <img src="public/images/proposal/اضافة عميل جديد(ادارة).png" 
+                     alt="إضافة عميل للإدارة" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تحكم كامل في إضافة العملاء:</strong> واجهة إدارية متقدمة لإضافة عملاء جدد مع جميع البيانات المطلوبة 
+                    (الاسم، البريد، الشركة، الهاتف، القطاع، المدينة، المنطقة، الاحتياجات). الإدارة يمكنها تعيين المسوق المسؤول 
+                    وتحديد الخدمات المناسبة، مع إمكانية إضافة خدمات أخرى وتحديد أولوية العميل.
+                </p>
+            </div>
+
+            <!-- واجهة الإعدادات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ⚙️ مركز الإعدادات العامة للنظام
+                </h3>
+                <img src="public/images/proposal/اعدادات(ادارة).png" 
+                     alt="الإعدادات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تحكم شامل في إعدادات المنصة:</strong> واجهة مركزية لإدارة جميع إعدادات النظام الأساسية. 
+                    تتضمن إعدادات العمولات الافتراضية، حدود السحب، إعدادات الإشعارات، معلومات الشركة، والروابط الاجتماعية. 
+                    النظام يوفر تحكماً كاملاً في تشغيل المنصة مع إمكانية تعديل الإعدادات حسب متطلبات العمل.
+                </p>
+            </div>
+
+            <h4 style="color: #1a365d; font-size: 1.4em; margin-top: 60px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+                👤 لوحة تحكم المسوق (للمسوقين فقط)
+            </h4>
+            <p style="color: #4a5568; font-size: 1.1em; margin-bottom: 30px;">
+                واجهة خاصة بالمسوقين توفر أدوات شخصية لإدارة الأداء والمتابعة:
+            </p>
+
+            <!-- لوحة تحكم المسوق -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    📈 لوحة تحكم المسوق الشخصية
+                </h3>
+                <img src="public/images/proposal/الصفحة الرئيسية(مسوق).png" 
+                     alt="لوحة المسوق" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تمكين المسوق بأدوات متقدمة:</strong> لوحة تحكم شخصية تعرض للمسوق إجمالي المبيعات والعمولات، 
+                    تقدم الرتبة الحالية، سجل العملاء، روابط الدعوة الذكية، وأداء الفريق. الواجهة توفر رؤية 360 درجة 
+                    عن الأداء الشخصي والفريقي، مما يساعد المسوق على اتخاذ قرارات استراتيجية لزيادة دخله.
+                </p>
+            </div>
+
+            <!-- إضافة عميل في لوحة المسوق -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ➕ إضافة عميل جديد (لوحة المسوق)
+                </h3>
+                <img src="public/images/proposal/اضافة او تعديل عميل(مسوق).png" 
+                     alt="إضافة عميل للمسوق" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تبسيط عملية إضافة العملاء:</strong> نموذج مبسط ومخصص للمسوقين لإضافة عملاء جدد. 
+                    يتضمن الحقول الأساسية (الاسم، الهاتف، البريد، الشركة، القطاع، المدينة، الاحتياجات) مع اقتراح الخدمات المناسبة. 
+                    العميل يُضاف تلقائياً باسم المسوق الحالي، مما يسهل إدارة قاعدة العملاء الشخصية.
+                </p>
+            </div>
+
+            <!-- طلب سحب للمسوق -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    💰 طلب سحب العمولات (لوحة المسوق)
+                </h3>
+                <img src="public/images/proposal/طلب سحب (مسوق).png" 
+                     alt="طلب سحب للمسوق" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>سهولة سحب العمولات بأمان:</strong> نموذج مبسط للمسوقين لطلب سحب عمولاتهم. 
+                    يعرض الرصيد المتاح للسحب، إدخال المبلغ المطلوب، البيانات البنكية (الاسم، البنك، IBAN)، 
+                    مع إمكانية رفع صورة إثبات الحساب. النظام يضمن أمان المعاملات المالية وحماية البيانات الشخصية.
+                </p>
+            </div>
+
+            <!-- إعدادات الملف الشخصي للمسوق -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ⚙️ إعدادات الملف الشخصي (لوحة المسوق)
+                </h3>
+                <img src="public/images/proposal/الملف الشخصي(مسوق).png" 
+                     alt="إعدادات الملف الشخصي" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>إدارة الحساب الشخصي:</strong> واجهة إعدادات شاملة للمسوقين لإدارة ملفهم الشخصي. 
+                    تتضمن تحديث المعلومات الشخصية (الاسم، البريد، الهاتف)، تغيير كلمة المرور، إدارة البيانات البنكية، 
+                    إعدادات الإشعارات، وتفعيل/إلغاء تذكر الجلسة. الواجهة توفر تحكماً كاملاً في الحساب الشخصي.
+                </p>
+            </div>
+
+            <!-- تفاصيل طلبات السحب -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    💳 مراحل معالجة طلبات السحب
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                    <img src="public/images/proposal/ادارة طلب سحب 1(ادارة).png" 
+                         alt="مراجعة الطلب" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <img src="public/images/proposal/ادارة طلب سحب 2(ادارة).png" 
+                         alt="الاعتماد المالي" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                </div>
+                <div style="margin: 20px 0;">
+                    <img src="public/images/proposal/ادارة طلب سحب 3(ادارة).png" 
+                         alt="مرحلة التحويل" 
+                         style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px auto; display: block;">
+                </div>
+                <div style="margin: 20px 0;">
+                    <img src="public/images/proposal/ادارة طلبات السحب(ادارة).png" 
+                         alt="النتيجة النهائية" 
+                         style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px auto; display: block;">
+                </div>
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>رحلة طلب السحب الكاملة:</strong> عرض تفصيلي لجميع مراحل معالجة طلب السحب من التقديم حتى التحويل النهائي. 
+                    النظام يتبع إجراءات دقيقة لضمان الشفافية والأمان في جميع المعاملات المالية، مع توثيق كل خطوة في العملية.
+                </p>
+            </div>
+
+            <!-- تفاصيل العميل -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    👤 صفحة إدارة العملاء المركزية
+                </h3>
+                <img src="public/images/proposal/ادارة العملاء(ادارة).png" 
+                     alt="تفاصيل العميل" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>عرض شامل لبيانات العميل:</strong> صفحة تفصيلية تعرض جميع معلومات العميل، تاريخ التعامل، 
+                    والمراحل التي مر بها. يمكن للإدارة مراجعة تفاصيل الاتصال، الاحتياجات، والمسوق المسؤول، 
+                    مع إمكانية تحديث حالة العميل وإضافة ملاحظات متابعة.
+                </p>
+            </div>
+
+            <!-- تفاصيل المسوق -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🏆 صفحة تفاصيل المسوق الشاملة
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                    <img src="public/images/proposal/تفاصيل مسوق(ادارة).png" 
+                         alt="تفاصيل المسوق للإدارة" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <img src="public/images/proposal/تفاصيل مسوق(ادارة).png" 
+                         alt="تفاصيل المسوق" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                </div>
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>ملف المسوق المتكامل:</strong> عرض مفصل لبيانات المسوق يشمل الأداء، الإحصائيات، 
+                    العملاء، والعمولات. الواجهة توفر رؤية 360 درجة عن نشاط المسوق مع إمكانية تعديل البيانات 
+                    وتحديث الرتبة وإدارة الفريق التابع له.
+                </p>
+            </div>
+
+            <!-- تفاصيل الموظف -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    👥 صفحة تفاصيل الموظف
+                </h3>
+                <img src="public/images/proposal/تفاصيل موظف (ادارة).png" 
+                     alt="تفاصيل الموظف" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>إدارة بيانات الموظفين:</strong> صفحة متخصصة لعرض وتعديل بيانات الموظفين، 
+                    مع عرض الصلاحيات، الأدوار، وسجل النشاط. يمكن تحديث معلومات الاتصال وتغيير الدور الوظيفي 
+                    بسهولة مع الحفاظ على أمان البيانات.
+                </p>
+            </div>
+
+            <!-- إضافة وتعديل الموظف -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ➕ نموذج إضافة وتعديل الموظفين
+                </h3>
+                <img src="public/images/proposal/تفاصيل موظف (ادارة).png" 
+                     alt="إضافة موظف" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تبسيط إدارة الموظفين:</strong> نموذج متكامل لإضافة موظفين جدد أو تعديل بيانات الموظفين الحاليين. 
+                    يتضمن جميع البيانات المطلوبة مع تحديد الدور والصلاحيات المناسبة، مع التحقق من صحة البيانات قبل الحفظ.
+                </p>
+            </div>
+
+            <!-- إضافة دور جديد -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🔐 إنشاء الأدوار والصلاحيات المخصصة
+                </h3>
+                <img src="public/images/proposal/اضافة او تعديل دور(ادارة).png" 
+                     alt="إضافة دور جديد" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>مرونة في إدارة الصلاحيات:</strong> واجهة متقدمة لإنشاء أدوار جديدة مع تحديد الصلاحيات الدقيقة لكل دور. 
+                    يمكن التحكم في الوصول لكل قسم وتحديد الإجراءات المسموح بها، مما يوفر تحكماً كاملاً في صلاحيات المستخدمين.
+                </p>
+            </div>
+
+            <!-- نظام الإشعارات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    🔔 مركز الإشعارات المتقدم
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                    <img src="public/images/proposal/اشعارات (ادارة).png" 
+                         alt="إشعارات الإدارة" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <img src="public/images/proposal/اشعارات(مسوق).png" 
+                         alt="إشعارات المسوق" 
+                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                </div>
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>تواصل فعال وفوري:</strong> نظام إشعارات متكامل يوفر تحديثات فورية لجميع المستخدمين. 
+                    الإدارة تتلقى إشعارات عن الطلبات الجديدة والتغييرات المهمة، بينما يحصل المسوقون على إشعارات 
+                    عن تحديثات العملاء والمبيعات والعمولات.
+                </p>
+            </div>
+
+            <!-- سجل النشاطات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    📜 سجل النشاطات الشامل (Audit Trail)
+                </h3>
+                <img src="public/images/proposal/سجل النشاطات(ادارة).png" 
+                     alt="سجل النشاطات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>أمان وشفافية مطلقة:</strong> واجهة سجل النشاطات توثق كل إجراء يتم على المنصة، من تعديل بيانات العملاء إلى العمليات المالية. 
+                    النظام يسجل هوية المستخدم، نوع الإجراء، والتاريخ والوقت بدقة متناهية، مما يضمن القدرة على مراجعة أي تغيير والتحقق منه في أي وقت.
+                </p>
+            </div>
+
+            <!-- تجديد الاشتراكات -->
+            <div style="margin: 50px 0;">
+                <h3 style="color: #2c5282; background: #ebf8ff; padding: 10px 25px; border-radius: 50px; display: inline-block;">
+                    ⏳ إدارة تجديد الاشتراكات الآلية
+                </h3>
+                <img src="public/images/proposal/تجديد الاشتراكات(ادارة).png" 
+                     alt="تجديد الاشتراكات" 
+                     style="width: 100%; max-width: 800px; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 20px 0;">
+                <p style="color: #4a5568; line-height: 1.8;">
+                    <strong>ضمان استمرارية الخدمات:</strong> نظام متطور لتتبع مواعيد تجديد الاشتراكات وإرسال تنبيهات استباقية. 
+                    يمكن للإدارة مراجعة كافة الطلبات، تحديث حالات التجديد، والتأكد من عدم انقطاع الخدمة عن أي عميل، مع تقارير دورية عن حالة الاشتراكات.
+                </p>
+            </div>
+
+            <div class="highlight-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
+                <p style="color: white; font-size: 1.4em; text-align: center; margin: 0; position: relative; z-index: 1; font-weight: 600;">
+                    ✨ <strong>هذه الواجهات ليست مجرد تصميمات</strong> — بل هي حلول عملية جاهزة تم تطويرها بالكامل 
+                    وتجربتها فعلياً، مما يضمن تسليم منصة "حليف" بشكل احترافي ومتكامل يلبي جميع احتياجاتكم التسويقية.
+                </p>
+                <div style="text-align: center; margin-top: 20px; position: relative; z-index: 1;">
+                    <span style="background: rgba(255, 255, 255, 0.2); padding: 8px 20px; border-radius: 20px; font-size: 1em;">🚀 جاهزة للتسليم الفوري</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="footer" style="background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 60px; border-radius: 20px; margin-top: 80px; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;"></div>
+            <div style="position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;"></div>
+            <div style="position: relative; z-index: 1; text-align: center;">
+                <div style="display: inline-block; background: rgba(255, 215, 0, 0.2); padding: 10px 30px; border-radius: 30px; margin-bottom: 20px; border: 1px solid #ffd700;">
+                    <span style="color: #ffd700; font-weight: 700; font-size: 1.1em;">🏆 PREMIUM PARTNERSHIP</span>
+                </div>
+                <h2 style="border: none; justify-content: center; font-size: 2.2em; margin-bottom: 20px; color: white;">نستثمر خبرتنا لنبني نجاحكم</h2>
+                <p style="font-size: 1.3em; margin-bottom: 30px; color: rgba(255, 255, 255, 0.9);"><strong>تواصلوا معنا الآن للبدء:</strong> فريق حليف</p>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 30px;">
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 15px 25px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <span style="color: #ffd700; font-weight: 600;">📧 info@haleef.com</span>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 15px 25px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <span style="color: #ffd700; font-weight: 600;">📱 +966 50 123 4567</span>
+                    </div>
+                </div>
+                <p style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6); margin-top: 40px;">* جميع الحقوق محفوظة - حليف 2026 | Premium Proposal</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

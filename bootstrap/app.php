@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->command('subscriptions:check-renewals')->daily();
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

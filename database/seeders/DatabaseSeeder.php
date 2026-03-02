@@ -68,18 +68,7 @@ class DatabaseSeeder extends Seeder
             'logo_url' => 'https://nisba.me/assets/img/daftra.png',
         ]);
 
-        // Some Leads
-        $lead = \App\Models\Lead::create([
-            'user_id' => $user->id,
-            'client_name' => 'Phelan Wilcox',
-            'company_name' => 'Rose Fowler LLC',
-            'city' => 'جدة',
-            'client_phone' => '0599123123',
-            'status' => 'under_review',
-            'unique_id' => \App\Models\Lead::generateUniqueId(),
-        ]);
-
-        // Attach services to lead
-        $lead->services()->attach([1, 2]); // CRM and ERP systems
+        // Seed Leads using LeadSeeder
+        $this->call(LeadSeeder::class);
     }
 }

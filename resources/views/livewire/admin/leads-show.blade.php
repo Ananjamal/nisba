@@ -11,6 +11,33 @@ new #[Layout('layouts.admin')] class extends Component {
     {
         $this->lead = $lead->load('users');
     }
+
+    public function advanceStatus()
+    {
+        $nextStatus = $this->lead->getNextStatus();
+
+        if (!$nextStatus) {
+            $this->dispatch('toast', type: 'info', message: 'هذا العميل في آخر مرحلة من دورة الحياة');
+            return;
+        }
+
+        // Handle sold status with redirect if it needs confirmation/verification
+        // Actually, for simplicity on this page, we'll just move it.
+        // But if it's sold, there's extra logic usually.
+
+        $oldStatusLabel = Lead::statusLabel($this->lead->status);
+        $newStatusLabel = Lead::statusLabel($nextStatus);
+
+        $this->lead->update(['status' => $nextStatus]);
+        $this->lead->refresh();
+
+        // Log activity
+        if (method_exists($this->lead, 'logActivity')) {
+            $this->lead->logActivity("تم نقل العميل من {$oldStatusLabel} إلى {$newStatusLabel}", 'status_changed');
+        }
+
+        $this->dispatch('toast', type: 'success', message: "تم تحديث الحالة إلى: {$newStatusLabel}");
+    }
 } ?>
 
 <div class="space-y-6">
@@ -98,29 +125,29 @@ new #[Layout('layouts.admin')] class extends Component {
                 </h3>
                 <div class="space-y-4">
                     @php
-                        $statuses = \App\Models\Lead::lifecycleStatuses();
-                        $currentOrder = $statuses[$lead->status]['order'] ?? 1;
+                    $statuses = \App\Models\Lead::lifecycleStatuses();
+                    $currentOrder = $statuses[$lead->status]['order'] ?? 1;
                     @endphp
                     @foreach($statuses as $key => $info)
-                        @php
-                            $isCurrent = $key === $lead->status;
-                            $isPast = $info['order'] < $currentOrder;
-                            $isFuture = $info['order'] > $currentOrder;
+                    @php
+                    $isCurrent = $key === $lead->status;
+                    $isPast = $info['order'] < $currentOrder;
+                        $isFuture=$info['order']> $currentOrder;
                         @endphp
                         <div class="flex items-center gap-3 {{ $isCurrent ? 'bg-primary-50 -mx-4 px-4 py-2 rounded-xl border border-primary-200' : '' }}">
                             <div class="flex-shrink-0">
                                 @if($isCurrent)
-                                    <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg">
-                                        {{ $info['icon'] }}
-                                    </div>
+                                <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-lg">
+                                    {{ $info['icon'] }}
+                                </div>
                                 @elseif($isPast)
-                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-lg">
-                                        {{ $info['icon'] }}
-                                    </div>
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-lg">
+                                    {{ $info['icon'] }}
+                                </div>
                                 @else
-                                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-lg">
-                                        {{ $info['icon'] }}
-                                    </div>
+                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-lg">
+                                    {{ $info['icon'] }}
+                                </div>
                                 @endif
                             </div>
                             <div class="flex-1 text-right">
@@ -128,29 +155,46 @@ new #[Layout('layouts.admin')] class extends Component {
                                     {{ $info['label'] }}
                                 </p>
                                 @if($isCurrent)
-                                    <p class="text-xs text-primary-600">الحالة الحالية</p>
+                                <p class="text-xs text-primary-600">الحالة الحالية</p>
                                 @elseif($isPast)
-                                    <p class="text-xs text-green-600">تم إنجازها</p>
+                                <p class="text-xs text-green-600">تم إنجازها</p>
                                 @else
-                                    <p class="text-xs text-gray-400">قادمة</p>
+                                <p class="text-xs text-gray-400">قادمة</p>
                                 @endif
                             </div>
                             @if($isPast)
-                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
+                            <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
                             @endif
                         </div>
-                    @endforeach
+                        @endforeach
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-primary-100">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 text-center">حالة العميل الحالية</p>
-                <div class="text-center group">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
+                <div class="text-center group flex flex-col items-center gap-4">
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold border {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
                         {{ \App\Models\Lead::statusLabel($lead->status) }}
                     </span>
+
+                    @php
+                    $nextStatusKey = $lead->getNextStatus();
+                    $nextStatusConfig = $nextStatusKey ? \App\Models\Lead::lifecycleStatuses()[$nextStatusKey] : null;
+                    @endphp
+
+                    @if($nextStatusKey && $nextStatusConfig)
+                    <button
+                        @if($nextStatusKey==='sold' )
+                        wire:confirm="هل أنت متأكد من تغيير حالة المبيعة إلى تم البيع؟ سيتم تأكيد استحقاق العمولة للمسوقين."
+                        @endif
+                        wire:click="advanceStatus"
+                        class="w-full py-4 flex items-center justify-center gap-2 bg-primary-600 text-white rounded-2xl font-black hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all text-sm">
+                        <span>تأكيد الانتقال للمرحلة التالية: {{ $nextStatusConfig['label'] }}</span>
+                        <span class="text-lg">{{ $nextStatusConfig['icon'] }}</span>
+                    </button>
+                    @endif
                 </div>
 
                 <div class="pt-6 border-t border-primary-50">

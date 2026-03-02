@@ -17,7 +17,13 @@ new #[Layout('layouts.admin')] class extends Component {
     public $selectedRoles = ['affiliate'];
     public $sector = '';
     public $sector_filter = '';
+    public $status_filter = '';
     public $showModal = false;
+
+    // Deletion Request State
+    public $showDeletionModal = false;
+    public $deletionReason = '';
+    public $userToDelete = null;
 
     public function mount()
     {
@@ -55,6 +61,9 @@ new #[Layout('layouts.admin')] class extends Component {
                 })
                 ->when($this->sector_filter, function ($query) {
                     $query->where('sector', $this->sector_filter);
+                })
+                ->when($this->status_filter, function ($query) {
+                    $query->where('status', $this->status_filter);
                 })
                 ->orderBy($this->sortField, $this->sortDirection)
                 ->paginate(10),
@@ -127,6 +136,41 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->showModal = false;
         $this->resetForm();
         session()->flash('message', 'تم حفظ بيانات المستخدم بنجاح.');
+    }
+
+    public function confirmDelete($id)
+    {
+        $this->userToDelete = User::findOrFail($id);
+        $this->showDeletionModal = true;
+    }
+
+    public function requestDeletion()
+    {
+        $this->validate([
+            'deletionReason' => 'required|string|min:10',
+        ]);
+
+        if (!$this->userToDelete) {
+            return;
+        }
+
+        $this->userToDelete->requestDeletion(auth()->id(), $this->deletionReason);
+
+        // Notify admins
+        $admins = User::role(['admin', 'super-admin'])->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\GeneralNotification([
+                'title' => 'طلب حذف مسوق جديد',
+                'message' => 'تم تقديم طلب لحذف المسوق: ' . $this->userToDelete->name . ' بواسطة: ' . auth()->user()->name,
+                'type' => 'warning'
+            ]));
+        }
+
+        $this->showDeletionModal = false;
+        $this->deletionReason = '';
+        $this->userToDelete = null;
+
+        session()->flash('message', 'تم إرسال طلب الحذف للموافقة');
     }
 
     public function deleteUser($id)
@@ -207,8 +251,28 @@ new #[Layout('layouts.admin')] class extends Component {
                 </div>
             </div>
 
-            @if($sector_filter)
-            <button wire:click="$set('sector_filter', '')"
+            <div class="relative w-full md:w-auto min-w-[180px] group">
+                <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <select wire:model.live="status_filter" class="w-full appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
+                    <option value="">جميع الحالات</option>
+                    <option value="active">نشيط</option>
+                    <option value="inactive">خامل</option>
+                    <option value="blocked">محظور</option>
+                    <option value="pending">قيد الانتظار</option>
+                </select>
+                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+
+            @if($sector_filter || $status_filter)
+            <button wire:click="$set('sector_filter', ''); $set('status_filter', '')"
                 class="px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all shadow-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -301,7 +365,7 @@ new #[Layout('layouts.admin')] class extends Component {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
                                 </button>
-                                <button wire:click="$set('deletingId', {{ $user->id }}); $set('showDeleteModal', true)" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-300" title="حذف">
+                                <button @click="$wire.confirmDelete({{ $user->id }})" class="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-300" title="حذف">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
@@ -433,32 +497,41 @@ new #[Layout('layouts.admin')] class extends Component {
 
     <!-- Professional Delete Confirmation Modal -->
     <template x-teleport="body">
-        <div x-show="showDeleteModal" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
-            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="showDeleteModal = false"></div>
+        <div x-data="{ show: $wire.entangle('showDeletionModal') }"
+            x-show="show"
+            x-on:keydown.escape.window="show = false"
+            class="fixed inset-0 z-[110] overflow-y-auto" style="display: none;">
+            <div class="fixed inset-0 bg-primary-900/60 backdrop-blur-sm transition-opacity" @click="show = false"></div>
 
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-sm transform overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all text-center">
-                    <div class="mb-6">
+                <div class="relative w-full max-w-md transform overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-2xl transition-all">
+                    <div class="mb-6 text-center">
                         <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
                             <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-black text-primary-900 mb-2">هل أنت متأكد؟</h3>
-                        <p class="text-primary-500 font-medium">سيتم حذف بيانات المسوق نهائياً، هذا الإجراء لا يمكن التراجع عنه.</p>
+                        <h3 class="text-2xl font-black text-primary-900 mb-2">طلب حذف مسوق</h3>
+                        <p class="text-primary-500 font-medium">سيتم إرسال طلب حذف للمراجعة بدلاً من الحذف المباشر.</p>
                     </div>
 
-                    <div class="flex flex-col gap-3">
-                        <button
-                            @click="$wire.deleteUser(deletingId); showDeleteModal = false"
-                            class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-200 hover:shadow-red-300 transition-all transform active:scale-95">
-                            تأكيد الحذف
-                        </button>
-                        <button
-                            @click="showDeleteModal = false"
-                            class="w-full py-4 bg-primary-50 text-primary-600 rounded-2xl font-bold hover:bg-primary-100 transition-all font-bold">
-                            إلغاء
-                        </button>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">سبب الحذف (مطلوب)</label>
+                            <textarea wire:model="deletionReason"
+                                class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm min-h-[100px]"
+                                placeholder="يرجى توضيح سبب الحذف بالتفصيل..."></textarea>
+                            @error('deletionReason') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <button wire:click="requestDeletion" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95">
+                                إرسال طلب الحذف
+                            </button>
+                            <button @click="show = false" class="w-full py-4 bg-primary-50 text-primary-600 rounded-2xl font-bold hover:bg-primary-100 transition-all">
+                                إلغاء
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

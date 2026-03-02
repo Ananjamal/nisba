@@ -112,6 +112,11 @@ class User extends Authenticatable
         return $this->hasMany(UserDeletionRequest::class);
     }
 
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class, 'causer_id');
+    }
+
     public function referralLink()
     {
         return $this->hasOne(ReferralLink::class);
@@ -150,6 +155,28 @@ class User extends Authenticatable
         return $rankConfig?->icon ?? '🥉';
     }
 
+    public function getStatusLabel()
+    {
+        return match ($this->status) {
+            'active' => 'نشيط',
+            'inactive' => 'خامل',
+            'blocked' => 'محظور',
+            'pending' => 'قيد الانتظار',
+            default => $this->status,
+        };
+    }
+
+    public function getStatusBadgeColor()
+    {
+        return match ($this->status) {
+            'active' => 'bg-green-100 text-green-800 border-green-200',
+            'inactive' => 'bg-gray-100 text-gray-800 border-gray-200',
+            'blocked' => 'bg-red-100 text-red-800 border-red-200',
+            'pending' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            default => 'bg-blue-100 text-blue-800 border-blue-200',
+        };
+    }
+
     public function checkRankUpgrade()
     {
         if ($this->role !== 'affiliate') return;
@@ -184,15 +211,20 @@ class User extends Authenticatable
         }
     }
 
-    public function logActivity($activity)
+    public function logActivity($description, $type = 'updated', $properties = [])
     {
+        // Log to JSON column (existing)
         $log = $this->activity_log ?? [];
         $log[] = [
-            'activity' => $activity,
+            'activity' => $description,
+            'type' => $type,
             'timestamp' => now()->toISOString(),
             'ip' => request()->ip(),
         ];
         $this->update(['activity_log' => $log]);
+
+        // Log to ActivityLog model (new unified system)
+        return ActivityLog::log($this, $type, $description, $properties);
     }
 
     public static function generateReferralCode()

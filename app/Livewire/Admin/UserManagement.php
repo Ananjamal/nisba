@@ -6,16 +6,15 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\UserDeletionRequest;
+use App\Models\LeadDeletionRequest;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
 class UserManagement extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, \App\Livewire\Traits\WithDynamicTable;
 
-    public $search = '';
-    public $statusFilter = 'all';
-    public $roleFilter = 'all';
+    public $role_filter = 'all';
     public $selectedUsers = [];
     public $profileImage;
     public $showDeletionModal = false;
@@ -23,6 +22,17 @@ class UserManagement extends Component
     public $userToDelete = null;
 
     protected $paginationTheme = 'tailwind';
+
+    public function mount()
+    {
+        $this->loadTablePrefs([
+            'user' => true,
+            'status' => true,
+            'role' => true,
+            'referral_code' => true,
+            'actions' => true,
+        ]);
+    }
 
     protected $listeners = [
         'refreshComponent' => '$refresh',
@@ -34,28 +44,28 @@ class UserManagement extends Component
         return User::when($this->search, function ($query) {
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%')
-                  ->orWhere('phone', 'like', '%' . $this->search . '%');
+                    ->orWhere('email', 'like', '%' . $this->search . '%')
+                    ->orWhere('phone', 'like', '%' . $this->search . '%');
             });
         })
-        ->when($this->statusFilter !== 'all', function ($query) {
-            $query->where('status', $this->statusFilter);
-        })
-        ->when($this->roleFilter !== 'all', function ($query) {
-            $query->where('role', $this->roleFilter);
-        })
-        ->with('deletionRequests')
-        ->latest()
-        ->paginate(10);
+            ->when($this->status_filter !== 'all' && $this->status_filter !== '', function ($query) {
+                $query->where('status', $this->status_filter);
+            })
+            ->when($this->role_filter !== 'all' && $this->role_filter !== '', function ($query) {
+                $query->where('role', $this->role_filter);
+            })
+            ->with('deletionRequests')
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate(10);
     }
 
     public function updateUserStatus($userId, $status)
     {
         $user = User::findOrFail($userId);
         $user->update(['status' => $status]);
-        
+
         $user->logActivity("تم تغيير الحالة إلى: {$status} بواسطة الإدارة");
-        
+
         $this->dispatch('refreshComponent');
         $this->dispatch('show-message', 'تم تحديث حالة المستخدم بنجاح');
     }
@@ -65,7 +75,7 @@ class UserManagement extends Component
         $user = User::findOrFail($userId);
         $code = User::generateReferralCode();
         $user->update(['referral_code' => $code]);
-        
+
         $this->dispatch('refreshComponent');
         $this->dispatch('show-message', 'تم توليد كود الإحالة بنجاح');
     }
@@ -77,16 +87,16 @@ class UserManagement extends Component
         ]);
 
         $user = User::findOrFail($userId);
-        
+
         if ($user->profile_image) {
             Storage::delete('public/' . $user->profile_image);
         }
 
         $path = $this->profileImage->store('profile-images', 'public');
         $user->update(['profile_image' => $path]);
-        
+
         $user->logActivity("تم تحديث صورة الملف الشخصي");
-        
+
         $this->profileImage = null;
         $this->dispatch('refreshComponent');
         $this->dispatch('show-message', 'تم تحديث صورة الملف الشخصي بنجاح');
@@ -109,16 +119,65 @@ class UserManagement extends Component
         }
 
         $deletionRequest = $this->userToDelete->requestDeletion(auth()->id(), $this->deletionReason);
-        
+
         // Log the activity
         $this->userToDelete->logActivity("تم طلب حذف الحساب. السبب: {$this->deletionReason}");
-        
+
         $this->showDeletionModal = false;
         $this->deletionReason = '';
         $this->userToDelete = null;
-        
+
         $this->dispatch('refreshComponent');
         $this->dispatch('show-message', 'تم إرسال طلب الحذف للموافقة');
+    }
+
+    public function approveDeletion($requestId)
+    {
+        $request = UserDeletionRequest::findOrFail($requestId);
+
+        try {
+            $request->approve(auth()->id());
+            $this->dispatch('show-message', 'تمت الموافقة على طلب الحذف بنجاح');
+            $this->dispatch('refreshComponent');
+        } catch (\Exception $e) {
+            $this->dispatch('show-message', 'خطأ: ' . $e->getMessage(), 'error');
+        }
+    }
+
+    public function rejectDeletion($requestId)
+    {
+        $request = UserDeletionRequest::findOrFail($requestId);
+        $request->update([
+            'status' => 'rejected',
+            'rejection_reason' => 'تم الرفض بواسطة الإدارة',
+            'super_admin_approved_by' => auth()->id(),
+            'super_admin_approved_at' => now(),
+        ]);
+
+        $this->dispatch('show-message', 'تم رفض طلب الحذف');
+        $this->dispatch('refreshComponent');
+    }
+
+    public function approveLeadDeletion($requestId)
+    {
+        $request = LeadDeletionRequest::findOrFail($requestId);
+
+        try {
+            $request->approve(auth()->id());
+            $this->dispatch('show-message', 'تمت الموافقة على طلب حذف العميل بنجاح');
+            $this->dispatch('refreshComponent');
+        } catch (\Exception $e) {
+            $this->dispatch('show-message', 'خطأ: ' . $e->getMessage(), 'error');
+        }
+    }
+
+    public function rejectLeadDeletion($requestId)
+    {
+        $request = LeadDeletionRequest::findOrFail($requestId);
+        $request->reject(auth()->id(), 'تم الرفض بواسطة الإدارة');
+
+        $this->dispatch('show-message', 'تم رفض طلب حذف العميل');
+        $this->dispatch('refreshComponent');
     }
 
     public function bulkStatusUpdate($status)
@@ -129,12 +188,12 @@ class UserManagement extends Component
         }
 
         User::whereIn('id', $this->selectedUsers)->update(['status' => $status]);
-        
+
         foreach ($this->selectedUsers as $userId) {
             $user = User::find($userId);
             $user->logActivity("تم تحديث الحالة بشكل جماعي إلى: {$status}");
         }
-        
+
         $this->selectedUsers = [];
         $this->dispatch('refreshComponent');
         $this->dispatch('show-message', 'تم تحديث حالة المستخدمين المحددين بنجاح');
@@ -182,10 +241,14 @@ class UserManagement extends Component
     {
         return view('livewire.admin.user-management', [
             'users' => $this->getUsers(),
-            'deletionRequests' => UserDeletionRequest::with('user', 'requestedBy', 'approvedBy')
+            'deletionRequests' => UserDeletionRequest::with('user', 'requestedBy')
                 ->where('status', 'pending')
                 ->latest()
                 ->get(),
-        ]);
+            'leadDeletionRequests' => LeadDeletionRequest::with('lead', 'requestedBy')
+                ->where('status', 'pending')
+                ->latest()
+                ->get(),
+        ])->layout('layouts.admin');
     }
 }

@@ -7,17 +7,30 @@ use Livewire\WithPagination;
 use App\Models\ActivityLog;
 use App\Models\User;
 
+use App\Livewire\Traits\WithDynamicTable;
+
 class ActivityHistory extends Component
 {
-    use WithPagination;
+    use WithPagination, WithDynamicTable;
 
-    public $search = '';
     public $typeFilter = 'all';
     public $causerFilter = 'all';
     public $subjectFilter = 'all';
     public $dateRangeFilter = '7'; // days
     public $selectedActivity = null;
     public $showDetailsModal = false;
+
+    public function mount()
+    {
+        $this->loadTablePrefs([
+            'date' => true,
+            'type' => true,
+            'causer' => true,
+            'subject' => true,
+            'description' => true,
+            'actions' => true,
+        ]);
+    }
 
     protected $paginationTheme = 'tailwind';
 
@@ -53,7 +66,7 @@ class ActivityHistory extends Component
                 $query->where('created_at', '>=', now()->subDays($this->dateRangeFilter));
             });
 
-        return $query->latest()->paginate(20);
+        return $query->orderBy($this->sortField, $this->sortDirection)->paginate(20);
     }
 
     public function getStatistics()
@@ -183,6 +196,6 @@ class ActivityHistory extends Component
             'activityTypes' => $this->getActivityTypes(),
             'causers' => $this->getCausers(),
             'subjectTypes' => $this->getSubjectTypes(),
-        ]);
+        ])->layout('layouts.admin');
     }
 }

@@ -27,9 +27,16 @@ new class extends Component {
     {
         /** @var \App\Models\User $user */
         $user = auth()->user();
+        $taxRate = \App\Models\SystemSetting::get('tax_rate', 15);
+        $taxAmount = (float)($this->amount ?: 0) * $taxRate / 100;
+        $finalAmount = (float)($this->amount ?: 0) - $taxAmount;
+
         return [
             'stats' => $user->stats,
             'requests' => $user->withdrawalRequests()->latest()->get(),
+            'taxRate' => $taxRate,
+            'taxAmount' => $taxAmount,
+            'finalAmount' => $finalAmount,
         ];
     }
 
@@ -38,6 +45,7 @@ new class extends Component {
         /** @var \App\Models\User $user */
         $user = auth()->user();
         $availableBalance = $user->stats->pending_commissions ?? 0;
+        $taxRate = \App\Models\SystemSetting::get('tax_rate', 15);
 
         $this->validate([
             'amount' => 'required|numeric|min:50|max:' . $availableBalance,
@@ -50,11 +58,17 @@ new class extends Component {
             'amount.min' => 'الحد الأدنى للسحب هو 50 ر.س'
         ]);
 
+        $taxAmount = ($this->amount * $taxRate) / 100;
+        $finalAmount = $this->amount - $taxAmount;
+
         // Store files
         $ibanProofPath = $this->iban_proof->store('withdrawals/iban_proofs', 'public');
 
         $withdrawalRequest = $user->withdrawalRequests()->create([
             'amount' => $this->amount,
+            'tax_rate' => $taxRate,
+            'tax_amount' => $taxAmount,
+            'final_amount' => $finalAmount,
             'iban' => $this->iban,
             'bank_name' => $this->bank_name,
             'account_holder_name' => $this->account_holder_name,
@@ -220,13 +234,30 @@ new class extends Component {
                         <div class="form-group">
                             <label class="form-label font-bold">المبلغ المطلوب سحبه</label>
                             <div class="relative">
-                                <input type="number" wire:model="amount" step="0.01" class="form-input pl-16" placeholder="0.00">
+                                <input type="number" wire:model.live="amount" step="0.01" class="form-input pl-16" placeholder="0.00">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500 sm:text-sm">ر.س</span>
                                 </div>
                             </div>
                             @error('amount') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($amount > 0)
+                        <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-emerald-600">المبلغ الإجمالي:</span>
+                                <span class="font-black text-emerald-900">{{ number_format($amount, 2) }} ر.س</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-rose-500">الضريبة ({{ $taxRate }}%):</span>
+                                <span class="font-black text-rose-500">- {{ number_format($taxAmount, 2) }} ر.س</span>
+                            </div>
+                            <div class="pt-2 border-t border-emerald-200 flex justify-between items-center">
+                                <span class="font-black text-emerald-900 text-xs">المبلغ الصافي:</span>
+                                <span class="text-lg font-black text-emerald-600">{{ number_format($finalAmount, 2) }} ر.س</span>
+                            </div>
+                        </div>
+                        @endif
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group">

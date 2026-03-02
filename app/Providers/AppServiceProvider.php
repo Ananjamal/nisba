@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,12 +22,20 @@ class AppServiceProvider extends ServiceProvider
     {
         \App\Models\Lead::observe(\App\Observers\LeadObserver::class);
 
-        // Load dynamic settings into config
-        if (\Schema::hasTable('settings')) {
-            $settings = \App\Models\Setting::all();
+        // Load dynamic settings into config from system_settings
+        if (\Schema::hasTable('system_settings')) {
+            $settings = \App\Models\SystemSetting::all();
             foreach ($settings as $setting) {
                 config(['app.' . $setting->key => $setting->value]);
                 // Also update app name specifically
+                if ($setting->key === 'site_name') {
+                    config(['app.name' => $setting->value]);
+                }
+            }
+        } elseif (\Schema::hasTable('settings')) {
+            $settings = \App\Models\Setting::all();
+            foreach ($settings as $setting) {
+                config(['app.' . $setting->key => $setting->value]);
                 if ($setting->key === 'site_name') {
                     config(['app.name' => $setting->value]);
                 }

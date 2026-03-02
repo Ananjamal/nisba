@@ -15,6 +15,8 @@ new #[Layout('layouts.admin')] class extends Component {
     public $admin_notes = '';
     public $rejection_reason = '';
     public $activeRequestId = null;
+    public $delegated_to = '';
+    public $notes = '';
 
     public function mount()
     {
@@ -33,7 +35,42 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->activeRequestId = $id;
         $this->admin_notes = '';
         $this->rejection_reason = '';
+
+        $request = WithdrawalRequest::find($id);
+        if ($request) {
+            $this->delegated_to = $request->delegated_to ?? '';
+            $this->notes = $request->notes ?? '';
+        }
+
         $this->dispatch('open-modal', 'payout-management');
+    }
+
+    public function delegateRequest()
+    {
+        if (!$this->activeRequestId) return;
+
+        $request = WithdrawalRequest::findOrFail($this->activeRequestId);
+        $request->update([
+            'delegated_to' => $this->delegated_to ?: null,
+            'notes' => $this->notes,
+        ]);
+
+        if ($this->delegated_to) {
+            $staff = \App\Models\User::find($this->delegated_to);
+            if ($staff) {
+                // Log activity
+                \App\Models\ActivityLog::log($request, 'withdrawal_delegated', "تم تفويض الطلب إلى: {$staff->name}", ['delegated_to' => $this->delegated_to]);
+
+                // Notify staff
+                $staff->notify(new GeneralNotification([
+                    'title' => 'تم تفويض طلب سحب لك',
+                    'message' => 'تم تفويض طلب سحب المبالغ الخاص بالعميل ' . $request->user->name . ' لمتابعتك.',
+                    'type' => 'info'
+                ]));
+            }
+        }
+
+        $this->dispatch('toast', type: 'success', message: 'تم تحديث التفويض والملاحظات بنجاح');
     }
 
     public function moveToReview()
@@ -41,6 +78,10 @@ new #[Layout('layouts.admin')] class extends Component {
         if (!$this->activeRequestId) return;
         $request = WithdrawalRequest::findOrFail($this->activeRequestId);
         $request->update(['status' => 'under_review']);
+
+        // Log activity
+        \App\Models\ActivityLog::log($request, 'status_changed', "تم بدء مراجعة طلب السحب", ['status' => 'under_review']);
+
         $this->reset(['activeRequestId']);
         $this->dispatch('close-modal', 'payout-management');
         $this->dispatch('payout-updated');
@@ -56,6 +97,10 @@ new #[Layout('layouts.admin')] class extends Component {
             'finance_approved_by' => auth()->id(),
             'finance_approved_at' => now(),
         ]);
+
+        // Log activity
+        \App\Models\ActivityLog::log($request, 'status_changed', "تم الاعتماد المالي لطلب السحب", ['status' => 'approved_finance']);
+
         $this->reset(['activeRequestId']);
         $this->dispatch('close-modal', 'payout-management');
         $this->dispatch('payout-updated');
@@ -72,6 +117,9 @@ new #[Layout('layouts.admin')] class extends Component {
             'status' => 'rejected',
             'rejection_reason' => $this->rejection_reason,
         ]);
+
+        // Log activity
+        \App\Models\ActivityLog::log($request, 'status_changed', "تم رفض طلب السحب", ['status' => 'rejected', 'reason' => $this->rejection_reason]);
 
         $request->user->notify(new GeneralNotification([
             'title' => 'تم رفض طلب السحب',
@@ -104,6 +152,9 @@ new #[Layout('layouts.admin')] class extends Component {
             'admin_approved_at' => now(),
         ]);
 
+        // Log activity
+        \App\Models\ActivityLog::log($request, 'withdrawal_approved', "تم تأكيد الحوالة النهائية لطلب السحب", ['status' => 'paid']);
+
         // Update user stats
         $stats = UserStat::where('user_id', $request->user_id)->first();
         if ($stats) {
@@ -131,7 +182,8 @@ new #[Layout('layouts.admin')] class extends Component {
                 ->when($this->date_to, fn($q) => $q->whereDate('created_at', '<=', $this->date_to))
                 ->orderBy($this->sortField, $this->sortDirection)
                 ->paginate(10),
-            'activeRequest' => $this->activeRequestId ? WithdrawalRequest::with(['user', 'lead'])->find($this->activeRequestId) : null,
+            'activeRequest' => $this->activeRequestId ? WithdrawalRequest::with(['user', 'lead', 'delegatedTo'])->find($this->activeRequestId) : null,
+            'staffUsers' => \App\Models\User::role(['admin', 'super-admin', 'employee'])->get(),
         ];
     }
 }; ?>
@@ -256,11 +308,27 @@ new #[Layout('layouts.admin')] class extends Component {
 
                         @if ($columns['amount'])
                         <td class="py-5">
-                            <div class="flex flex-col items-start px-2">
-                                <span class="text-xs font-black text-gray-400 mb-0.5">المبلغ</span>
-                                <div class="flex items-baseline gap-1">
-                                    <span class="font-black text-primary-900 text-lg leading-none">{{ number_format($request->amount, 2) }}</span>
-                                    <span class="text-[10px] text-primary-500 font-black">ر.س</span>
+                            <div class="flex flex-col items-start px-2 space-y-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">الإجمالي</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="font-black text-gray-500 text-sm leading-none">{{ number_format($request->amount, 2) }}</span>
+                                        <span class="text-[9px] text-gray-400 font-bold">ر.س</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-black text-rose-400 uppercase tracking-tighter">الضريبة</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="font-black text-rose-500 text-sm leading-none">{{ number_format($request->tax_amount, 2) }}</span>
+                                        <span class="text-[9px] text-rose-400 font-bold">ر.س</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col pt-1 border-t border-gray-100 min-w-[80px]">
+                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">الصافي</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="font-black text-emerald-600 text-base leading-none">{{ number_format($request->final_amount, 2) }}</span>
+                                        <span class="text-[9px] text-emerald-500 font-black">ر.س</span>
+                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -363,166 +431,178 @@ new #[Layout('layouts.admin')] class extends Component {
         </div>
 
         <!-- Payout Management Modal (Executive Redesign) -->
-        <x-modal name="payout-management" :show="$activeRequestId !== null" maxWidth="xl" x-on:close="$wire.set('activeRequestId', null)">
+        <x-modal name="payout-management" :show="$activeRequestId !== null" maxWidth="2xl" x-on:close="$wire.set('activeRequestId', null)">
             @if($activeRequest)
-            <div class="bg-white rounded-2xl overflow-hidden">
-                <div class="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 p-6 flex items-center justify-between">
-                    <div>
-                        <h4 class="text-lg font-black text-gray-900">إدارة طلب السحب #{{ $activeRequest->id }}</h4>
-                        <p class="text-xs font-bold text-gray-500 mt-1">المستفيد: {{ $activeRequest->user->name }}</p>
+            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 text-right" dir="rtl">
+
+                <div class="relative p-8 text-white" style="background: linear-gradient(135deg, #064e3b 0%, #059669 100%);">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="bg-white/20 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-white/30 backdrop-blur-md">PAYOUT SYSTEM</span>
+                                <span class="text-emerald-200 font-mono text-sm mr-2 opacity-80">#{{ $activeRequest->id }}</span>
+                            </div>
+                            <h4 class="text-2xl font-black tracking-tight text-white">إدارة طلب السحب</h4>
+                            <p class="text-emerald-100/80 text-sm mt-1 font-medium">مراجعة البيانات المالية واعتماد الحوالة للمسوق</p>
+                        </div>
+                        <button wire:click="$set('activeRequestId', null)" x-on:click="$dispatch('close-modal', 'payout-management')"
+                            class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl transition-all border border-white/10 shadow-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <button wire:click="$set('activeRequestId', null)" x-on:click="$dispatch('close-modal', 'payout-management')" class="text-gray-400 hover:text-gray-600 transition p-2 hover:bg-gray-100 rounded-lg">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
                 </div>
 
-                <div class="p-8">
-                    <!-- Basic Info Summary -->
-                    <div class="grid grid-cols-2 gap-6 mb-8 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                        <div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">المسوق والعميل</p>
+                <div class="p-8 -mt-6 bg-white rounded-t-[32px] relative z-20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-emerald-200 transition-all duration-300 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-emerald-600 text-white rounded-lg shadow-md shadow-emerald-100">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <span class="text-[11px] font-black text-gray-400 uppercase tracking-wider">المستفيد</span>
+                            </div>
                             <div class="space-y-1">
-                                <p class="text-sm font-bold text-gray-900">{{ $activeRequest->user->name }}</p>
-                                <p class="text-xs font-bold text-primary-600">{{ $activeRequest->client_name ?: 'بدون عميل محدد' }}</p>
+                                <p class="text-base font-black text-gray-900">{{ $activeRequest->user->name }}</p>
+                                <p class="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    {{ $activeRequest->client_name ?: 'بدون عميل محدد' }}
+                                </p>
                             </div>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">البيانات البنكية والمبلغ</p>
-                            <div class="space-y-1">
-                                <p class="text-sm font-bold text-gray-900">{{ number_format($activeRequest->amount, 2) }} ر.س</p>
-                                <p class="text-[10px] font-mono font-bold text-gray-500">{{ $activeRequest->iban }}</p>
+
+                        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-emerald-200 transition-all duration-300 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-emerald-600 text-white rounded-lg shadow-md shadow-emerald-100">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <span class="text-[11px] font-black text-gray-400 uppercase tracking-wider">تفاصيل المبلغ</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Workflow Steps -->
-                    <div class="relative flex items-center justify-between mb-10 px-4">
-                        <div class="absolute left-0 right-0 h-1 bg-gray-100 top-5 -z-10 rounded-full">
-                            <div class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: {{ 
-                                        match($activeRequest->status) {
-                                            'pending' => '0%',
-                                            'under_review' => '33%',
-                                            'approved_finance' => '66%',
-                                            'paid' => '100%',
-                                            default => '0%'
-                                        }
-                                    }}"></div>
-                        </div>
-
-                        <!-- Step 1: Submission -->
-                        <div class="flex flex-col items-center group">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center bg-green-500 text-white shadow-lg shadow-green-200 ring-4 ring-white">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                            </div>
-                            <span class="text-[10px] font-bold mt-3 text-gray-600">تم الطلب</span>
-                        </div>
-
-                        <!-- Step 2: Review -->
-                        <div class="flex flex-col items-center group">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ring-4 ring-white {{ in_array($activeRequest->status, ['under_review', 'approved_finance', 'paid']) ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-50 border-2 border-gray-200 text-gray-400' }}">
-                                @if(in_array($activeRequest->status, ['under_review', 'approved_finance', 'paid']))
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-gray-500">المبلغ الإجمالي:</span>
+                                    <span class="text-sm font-black text-gray-900">{{ number_format($activeRequest->amount, 2) }} ر.س</span>
+                                </div>
+                                @if($activeRequest->tax_amount > 0)
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-rose-500">الضريبة ({{ $activeRequest->tax_rate }}%):</span>
+                                    <span class="text-sm font-black text-rose-500">- {{ number_format($activeRequest->tax_amount, 2) }} ر.س</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span class="text-xs font-black text-emerald-700">الصافي للتحويل:</span>
+                                    <span class="text-lg font-black text-emerald-700">{{ number_format($activeRequest->final_amount, 2) }} ر.س</span>
+                                </div>
                                 @else
-                                <span class="font-bold">2</span>
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span class="text-xs font-black text-emerald-700">المبلغ النهائي:</span>
+                                    <span class="text-lg font-black text-emerald-700">{{ number_format($activeRequest->amount, 2) }} ر.س</span>
+                                </div>
                                 @endif
+                                <p class="text-[10px] font-mono font-bold text-gray-500 bg-white px-2 py-1 rounded border border-gray-100 mt-2 block text-left" dir="ltr">{{ $activeRequest->iban }}</p>
                             </div>
-                            <span class="text-[10px] font-bold mt-3 {{ $activeRequest->status === 'under_review' ? 'text-primary-600' : 'text-gray-500' }}">المراجعة</span>
-                        </div>
-
-                        <!-- Step 3: Finance Approval -->
-                        <div class="flex flex-col items-center group">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ring-4 ring-white {{ in_array($activeRequest->status, ['approved_finance', 'paid']) ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-50 border-2 border-gray-200 text-gray-400' }}">
-                                @if(in_array($activeRequest->status, ['approved_finance', 'paid']))
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                @else
-                                <span class="font-bold">3</span>
-                                @endif
-                            </div>
-                            <span class="text-[10px] font-bold mt-3 {{ $activeRequest->status === 'approved_finance' ? 'text-primary-600' : 'text-gray-500' }}">الاعتماد المالي</span>
-                        </div>
-
-                        <!-- Step 4: Payment -->
-                        <div class="flex flex-col items-center group">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ring-4 ring-white {{ $activeRequest->status === 'paid' ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-50 border-2 border-gray-200 text-gray-400' }}">
-                                @if($activeRequest->status === 'paid')
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                @else
-                                <span class="font-bold">4</span>
-                                @endif
-                            </div>
-                            <span class="text-[10px] font-bold mt-3 {{ $activeRequest->status === 'paid' ? 'text-primary-600' : 'text-gray-500' }}">تم التحويل</span>
                         </div>
                     </div>
 
                     @if($activeRequest->status === 'pending')
-                    @can('finance approve withdrawals')
-                    <div class="bg-gray-50/50 p-8 rounded-2xl border border-gray-100/50 text-center">
-                        <p class="text-xs font-black text-gray-500 mb-6 uppercase tracking-widest">هل ترغب في بدء مراجعة هذا الطلب؟</p>
-                        <button wire:click="moveToReview" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition shadow-lg shadow-blue-500/20 active:scale-[0.98]">بدء المراجعة والتدقيق</button>
+                    <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 text-center mb-6">
+                        <div class="w-16 h-16 bg-white rounded-full shadow-inner flex items-center justify-center mx-auto mb-4 border-4 border-emerald-50 text-emerald-500">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h5 class="text-gray-900 font-black text-lg">بدء المراجعة والتدقيق</h5>
+                        <p class="text-gray-500 text-xs mb-6 px-10">سيتم إخطار المسوق بأن طلبه قيد المراجعة المالية حالياً</p>
+                        @can('finance approve withdrawals')
+                        <button wire:click="moveToReview" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-emerald-200 active:scale-[0.98]">
+                            تأكيد البدء في المراجعة
+                        </button>
+                        @else
+                        <div class="text-amber-600 text-sm font-bold bg-amber-50 p-4 rounded-xl">بانتظار مراجعة المالية</div>
+                        @endcan
                     </div>
-                    @else
-                    <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-center text-gray-400 text-sm font-bold">بانتظار مراجعة المالية</div>
-                    @endcan
                     @elseif($activeRequest->status === 'under_review')
-                    @can('finance approve withdrawals')
-                    <div class="bg-gray-50/30 p-8 rounded-2xl border border-gray-100 shadow-sm">
-                        <p class="text-[10px] font-black text-gray-400 mb-6 text-center uppercase tracking-[0.2em]">بانتظار الاعتماد المالي</p>
-                        <button wire:click="financeApprove" class="w-full btn btn-primary active:scale-[0.98]">
+                    <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 text-center mb-6">
+                        <div class="w-16 h-16 bg-white rounded-full shadow-inner flex items-center justify-center mx-auto mb-4 border-4 border-blue-50 text-blue-500">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h5 class="text-gray-900 font-black text-lg">الاعتماد المالي</h5>
+                        <p class="text-gray-500 text-xs mb-6 px-10">مراجعة البيانات المالية واعتمادها للتحويل النهائي</p>
+                        @can('finance approve withdrawals')
+                        <button wire:click="financeApprove" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 active:scale-[0.98]">
                             اعتماد البيانات المالية
                         </button>
+                        @else
+                        <div class="text-blue-600 text-sm font-bold bg-blue-50 p-4 rounded-xl">الطلب قيد المراجعة المالية حالياً</div>
+                        @endcan
                     </div>
-                    @else
-                    <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 text-center text-gray-500 text-sm font-bold italic">هذا الطلب قيد المراجعة المالية حالياً</div>
-                    @endcan
                     @elseif($activeRequest->status === 'approved_finance')
-                    @can('admin approve withdrawals')
-                    <div class="bg-gray-50/30 p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-gray-400 mr-2 uppercase tracking-widest">صورة إثبات التحويل (Screenshot) <span class="text-rose-500">*</span></label>
-                            <input type="file" wire:model="payment_proof" class="w-full p-2.5 bg-white border border-gray-100 rounded-xl text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition shadow-sm">
+                    <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 mb-6">
+                        <h5 class="text-gray-900 font-black text-lg text-center mb-6">تأكيد الحوالة النهائية</h5>
+                        @can('admin approve withdrawals')
+                        <div class="space-y-6">
+                            <div class="space-y-3">
+                                <label class="text-[11px] font-black text-gray-400 mr-2 uppercase">صورة إثبات التحويل <span class="text-red-500">*</span></label>
+                                <input type="file" wire:model="payment_proof" class="w-full p-2.5 bg-white border border-gray-100 rounded-xl text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition shadow-sm">
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[11px] font-black text-gray-400 mr-2 uppercase">ملاحظات للمسوق</label>
+                                <textarea wire:model="admin_notes" class="w-full p-4 bg-white border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="اختياري..."></textarea>
+                                <button wire:click="approve" wire:loading.attr="disabled" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
+                                    <span wire:loading.remove>إتمام عملية التحويل</span>
+                                    <span wire:loading>جاري التحميل...</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-gray-400 mr-2 uppercase tracking-widest">ملاحظات إضافية للمسوق</label>
-                            <textarea wire:model="admin_notes" class="w-full p-4 bg-white border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-sm" placeholder="اختياري..."></textarea>
-                            <button wire:click="approve" wire:loading.attr="disabled" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl transition shadow-xl shadow-emerald-500/30 active:scale-[0.98] disabled:opacity-50">
-                                تأكيد الحوالة النهائية
-                            </button>
-                        </div>
+                        @else
+                        <div class="text-emerald-600 text-sm font-bold bg-emerald-50 p-4 rounded-xl text-center">تم الاعتماد المالي وبانتظار التحويل النهائي من المدير</div>
+                        @endcan
                     </div>
-                    @else
-                    <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 text-center text-primary-600 text-sm font-bold italic">تم اعتماد الطلب مالياً وبانتظار التحويل النهائي من قبل المدير</div>
-                    @endcan
                     @endif
 
-                    @if(in_array($activeRequest->status, ['pending', 'under_review', 'approved_finance']))
-                    @can('reject withdrawals')
-                    <div class="mt-8 pt-8 border-t border-gray-100">
-                        <div class="space-y-3 mb-6">
-                            <label class="text-xs font-black text-rose-500 mr-2">سبب الرفض (في حال الرفض)</label>
-                            <textarea wire:model="rejection_reason" class="w-full p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition" placeholder="اكتب سبب الرفض هنا..."></textarea>
-                            @error('rejection_reason') <span class="text-rose-500 text-[10px] font-bold">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="space-y-1">
+                            <label class="text-[11px] font-black text-gray-400 mr-2 uppercase">التفويض</label>
+                            <select wire:model="delegated_to" wire:change="delegateRequest" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <option value="">غير مفوض</option>
+                                @foreach($staffUsers as $staff) <option value="{{ $staff->id }}">{{ $staff->name }}</option> @endforeach
+                            </select>
                         </div>
-                        <div class="flex gap-4">
-                            <button wire:click="reject" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-4 rounded-xl transition shadow-lg shadow-rose-500/30 active:scale-[0.98]">رفض الطلب</button>
-                            <button wire:click="$set('activeRequestId', null)" x-on:click="$dispatch('close-modal', 'payout-management')" class="px-8 bg-gray-100 text-gray-700 font-black py-4 rounded-xl hover:bg-gray-200 transition border border-gray-200 active:scale-[0.98]">إغلاق</button>
+                        <div class="space-y-1">
+                            <label class="text-[11px] font-black text-gray-400 mr-2 uppercase">ملاحظات داخلية</label>
+                            <textarea wire:model.blur="notes" wire:change="delegateRequest" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none min-h-[46px] resize-none" placeholder="ملاحظات النظام..."></textarea>
                         </div>
                     </div>
-                    @else
-                    <div class="mt-8 pt-8 border-t border-gray-100 flex justify-end">
-                        <button wire:click="$set('activeRequestId', null)" x-on:click="$dispatch('close-modal', 'payout-management')" class="px-8 bg-gray-100 text-gray-700 font-black py-4 rounded-xl hover:bg-gray-200 transition border border-gray-200 active:scale-[0.98]">إغلاق</button>
+
+                    <div class="mt-8 flex flex-col gap-4">
+                        @if(in_array($activeRequest->status, ['pending', 'under_review', 'approved_finance']))
+                        @can('reject withdrawals')
+                        <div x-data="{ open: false }" class="border-t border-gray-100 pt-6">
+                            <button @click="open = !open" class="text-red-500 text-xs font-black flex items-center gap-2 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
+                                <span class="text-base" x-text="open ? '−' : '+'"></span>
+                                منطقة الرفض وإلغاء الطلب
+                            </button>
+                            <div x-show="open" x-collapse class="mt-4 bg-red-50 p-5 rounded-2xl border border-red-100">
+                                <textarea wire:model="rejection_reason" class="w-full p-4 bg-white border border-red-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none mb-4" placeholder="اكتب سبب الرفض هنا..."></textarea>
+                                @error('rejection_reason') <p class="text-red-500 text-xs mb-4 font-bold">{{ $message }}</p> @enderror
+                                <button wire:click="reject" class="w-full bg-red-600 text-white font-black py-3.5 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-200">تأكيد رفض الطلب</button>
+                            </div>
+                        </div>
+                        @endcan
+                        @endif
+
+                        <button wire:click="$set('activeRequestId', null)" x-on:click="$dispatch('close-modal', 'payout-management')"
+                            class="w-full text-white-500 font-bold text-sm py-3 hover:bg-gray-100 rounded-xl transition-colors btn btn-primary">
+                            إغلاق النافذة
+                        </button>
                     </div>
-                    @endcan
-                    @endif
                 </div>
             </div>
             @endif

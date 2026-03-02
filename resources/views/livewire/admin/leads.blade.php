@@ -56,6 +56,7 @@ new #[Layout('layouts.admin')] class extends Component {
     public $new_service_id = '';
     public $new_service_image = null;
     public $show_add_service = false;
+    public $system_selection = '';
 
     // New Sector fields
     public $new_sector_name_input = '';
@@ -130,6 +131,17 @@ new #[Layout('layouts.admin')] class extends Component {
         } else {
             $this->recommended_systems[] = $systemId;
         }
+        $this->recommended_systems = array_values($this->recommended_systems);
+    }
+
+    public function updatedSystemSelection($value)
+    {
+        if ($value === 'add_new') {
+            $this->show_add_service = true;
+        } elseif ($value && !in_array($value, $this->recommended_systems)) {
+            $this->recommended_systems[] = $value;
+        }
+        $this->system_selection = '';
     }
 
     public function addNewSector()
@@ -198,6 +210,24 @@ new #[Layout('layouts.admin')] class extends Component {
         $this->new_service_image = null;
         $this->show_add_service = false;
         $this->dispatch('toast', type: 'success', message: 'تم إضافة الخدمة الجديدة بنجاح');
+    }
+
+    public function deleteAvailableSystem($systemId)
+    {
+        $available = json_decode(\App\Models\Setting::get('available_systems', '[]'), true) ?: [
+            ['name' => 'قيود', 'id' => 'qoyod'],
+            ['name' => 'دفترة', 'id' => 'daftra'],
+        ];
+
+        // Prevent deleting default systems if needed, or just allow all
+        $available = array_filter($available, fn($sys) => $sys['id'] !== $systemId);
+        \App\Models\Setting::set('available_systems', json_encode(array_values($available)));
+
+        // Also remove from recommended if it's there
+        $this->recommended_systems = array_diff($this->recommended_systems, [$systemId]);
+        $this->recommended_systems = array_values($this->recommended_systems);
+
+        $this->dispatch('toast', type: 'success', message: 'تم حذف الخدمة من القائمة بنجاح');
     }
 
     public function updatedSector($value)
@@ -592,13 +622,23 @@ new #[Layout('layouts.admin')] class extends Component {
                         @if($columns['renewal_date'])
                         <td class="py-4">
                             @if($lead->subscription_renewal_date)
-                                <p class="text-sm font-bold text-green-600">{{ $lead->subscription_renewal_date->format('Y-m-d') }}</p>
-                                @if($lead->subscription_renewal_date->diffInDays(now()) <= 30)
-                                    <span class="text-xs text-orange-600 font-medium">ينتج خلال {{ $lead->subscription_renewal_date->diffInDays(now()) }} يوم</span>
-                                @endif
-                            @else
-                                <span class="text-sm text-gray-400">غير محدد</span>
-                            @endif
+                            <p class="text-sm font-bold text-green-600">{{ $lead->subscription_renewal_date->format('Y-m-d') }}</p>
+                            @php
+                            $days = abs((int) $lead->subscription_renewal_date->diffInDays(now()));
+                            $daysText = match(true) {
+                            $days === 0 => 'اليوم',
+                            $days === 1 => 'غداً',
+                            $days === 2 => 'بعد يومين',
+                            $days >= 3 && $days <= 10=> "خلال $days أيام",
+                                default => "خلال $days يوم"
+                                };
+                                @endphp
+                                @if($lead->subscription_renewal_date->isFuture() && $days <= 30)
+                                    <span class="text-xs text-orange-600 font-medium">ينتهي {{ $daysText }}</span>
+                                    @endif
+                                    @else
+                                    <span class="text-sm text-gray-400">غير محدد</span>
+                                    @endif
                         </td>
                         @endif
                         @if($columns['city_phone'])
@@ -608,10 +648,14 @@ new #[Layout('layouts.admin')] class extends Component {
                         </td>
                         @endif
                         @if($columns['status'])
-                        <td class="py-4">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
-                                {{ \App\Models\Lead::statusLabel($lead->status) }}
-                            </span>
+                        <td class="py-4 px-8 min-w-[180px] whitespace-nowrap align-middle">
+                            <div class="flex items-center justify-start">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-black border shadow-sm tracking-wide {{ \App\Models\Lead::statusBadgeClass($lead->status) }}">
+                                    <span class="uppercase">
+                                        {{ \App\Models\Lead::statusLabel($lead->status) }}
+                                    </span>
+                                </span>
+                            </div>
                         </td>
                         @endif
                         @if($columns['actions'])
@@ -663,6 +707,289 @@ new #[Layout('layouts.admin')] class extends Component {
             {{ $leads->links() }}
         </div>
     </div>
+    <!-- Lead Create/Edit Modal -->
+    <template x-teleport="body">
+        <div x-data="{ show: $wire.entangle('showCreateModal') }"
+            x-show="show"
+            x-on:keydown.escape.window="show = false"
+            class="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto"
+            style="display: none;">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity"
+                @click="show = false"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"></div>
+
+            <!-- Modal Container -->
+            <div class="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl mt-4 mb-6 max-h-[85vh] flex flex-col border-2 border-gray-200"
+                @click.away="show = false"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100">
+
+                <!-- Header -->
+                <div class="bg-gradient-to-b from-gray-50 to-white px-8 py-6 flex justify-between items-center flex-shrink-0 border-b border-gray-200">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ $leadId ? 'تعديل بيانات العميل' : 'إضافة عميل جديد' }}</h3>
+                        <p class="text-gray-500 text-sm mt-1.5">{{ $leadId ? 'قم بتحديث معلومات العميل' : 'أدخل معلومات العميل الجديد' }}</p>
+                    </div>
+                    <button @click="show = false"
+                        class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2.5 rounded-xl transition-all duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="p-8 space-y-6 overflow-y-auto flex-1 bg-white">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم العميل</label>
+                            <input type="text" wire:model="name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">رقم الهاتف</label>
+                            <input type="text" wire:model="phone" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                            @error('phone') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">البريد الإلكتروني <span class="text-gray-400 text-xs">(اختياري)</span></label>
+                            <input type="email" wire:model="email" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المنطقة</label>
+                            <select wire:model.live="region" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                <option value="">اختر المنطقة</option>
+                                @foreach($regions as $regionName)
+                                <option value="{{ $regionName }}">{{ $regionName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">المدينة</label>
+                            <select wire:model="city" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white" {{ !$region ? 'disabled' : '' }}>
+                                <option value="">{{ $region ? 'اختر المدينة' : 'اختر المنطقة أولاً' }}</option>
+                                @if($region && isset($regionsWithCities[$region]))
+                                @foreach($regionsWithCities[$region] as $cityName)
+                                <option value="{{ $cityName }}">{{ $cityName }}</option>
+                                @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">اسم الشركة</label>
+                            <input type="text" wire:model="company_name" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">القطاع / المجال</label>
+                            <select wire:model.live="sector" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                <option value="">اختر القطاع</option>
+                                @foreach($available_sectors as $s)
+                                <option value="{{ $s }}">{{ $s }}</option>
+                                @endforeach
+                            </select>
+                            @if($show_add_sector)
+                            <div class="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                                <input type="text" wire:model="new_sector_name_input" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 text-sm font-bold" placeholder="اسم القطاع الجديد">
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="$wire.show_add_sector = false" class="px-3 py-1.5 text-[10px] font-bold text-gray-500">إلغاء</button>
+                                    <button type="button" wire:click="addNewSector" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black">تأكيد</button>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        <div class="md:col-span-2">
+                            <div class="flex items-center justify-between mb-3.5">
+                                <label class="text-sm font-semibold text-gray-700">الخدمة المقترحة</label>
+                            </div>
+                            @if($show_add_service)
+                            <div class="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="text" wire:model="new_service_name" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="اسم الخدمة">
+                                    <input type="text" wire:model="new_service_id" class="px-3 py-2 rounded-lg border border-gray-200 text-sm font-bold" placeholder="المعرف (انجليزي)" dir="ltr">
+                                    <div class="col-span-2">
+                                        <input type="file" wire:model="new_service_image" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="$wire.show_add_service = false" class="px-4 py-2 text-xs font-bold text-gray-500">إلغاء</button>
+                                    <button type="button" wire:click="addNewService" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-black">حفظ الخدمة</button>
+                                </div>
+                            </div>
+                            @endif
+                            <div class="space-y-4">
+                                <!-- Dropdown Selection -->
+                                <div class="relative group">
+                                    <div class="absolute inset-y-0 right-3.5 flex items-center pointer-events-none z-10">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                        </svg>
+                                    </div>
+                                    <select wire:model.live="system_selection" class="w-full appearance-none pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm transition-all text-sm font-bold text-gray-700 hover:border-gray-300">
+                                        <option value="">اختر الخدمة المطلوبة...</option>
+                                        @foreach($available_systems as $system)
+                                        @if(!in_array($system['id'], $recommended_systems))
+                                        <option value="{{ $system['id'] }}">{{ $system['name'] }}</option>
+                                        @endif
+                                        @endforeach
+                                        <option value="add_new" class="text-blue-600 font-black">+ إضافة خدمة أخرى</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Selected Tags -->
+                                <div class="flex flex-wrap gap-2.5">
+                                    @foreach($recommended_systems as $sysId)
+                                    @php
+                                    $system = collect($available_systems)->firstWhere('id', $sysId);
+                                    @endphp
+                                    <div class="inline-flex items-center gap-2.5 px-3.5 py-2 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 shadow-sm group animate-in fade-in zoom-in duration-300">
+                                        @if($system)
+                                        <div class="flex items-center gap-2">
+                                            <img src="{{ asset('images/systems/' . $sysId . '.png') }}" class="w-5 h-5 object-contain" alt="{{ $system['name'] }}">
+                                            <span class="text-sm font-bold">{{ $system['name'] }}</span>
+                                        </div>
+                                        @else
+                                        <span class="text-sm font-bold">{{ $sysId }}</span>
+                                        @endif
+                                        <button type="button"
+                                            wire:click="toggleSystem('{{ $sysId }}')"
+                                            class="w-6 h-6 flex items-center justify-center bg-blue-100 hover:bg-red-100 text-blue-600 hover:text-red-600 rounded-full transition-all duration-200"
+                                            title="إزالة الخدمة">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    @endforeach
+
+                                    @if(!empty($recommended_systems))
+                                    <button type="button"
+                                        wire:click="$set('recommended_systems', [])"
+                                        class="inline-flex items-center px-3.5 py-2 text-xs font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-200 border border-transparent hover:border-red-100">
+                                        مسح الكل
+                                    </button>
+                                    @else
+                                    <p class="text-[10px] text-gray-400 font-medium italic py-2">لم يتم اختيار أي أنظمة بعد.</p>
+                                    @endif
+                                </div>
+
+                                <!-- Manage Custom Services (Optional/Subtle) -->
+                                @php
+                                $customSystems = collect($available_systems)->filter(fn($s) => !in_array($s['id'], ['qoyod', 'daftra']))->values();
+                                @endphp
+                                @if($customSystems->isNotEmpty())
+                                <div class="pt-2">
+                                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">الخدمات المضافة مسبقاً</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($customSystems as $cs)
+                                        <div class="inline-flex items-center gap-2 px-2 py-1 bg-gray-50 text-gray-500 rounded-lg border border-gray-100 text-[10px] font-bold">
+                                            <span>{{ $cs['name'] }}</span>
+                                            <button type="button"
+                                                wire:confirm="هل أنت متأكد من حذف هذه الخدمة نهائياً من القائمة؟"
+                                                wire:click="deleteAvailableSystem('{{ $cs['id'] }}')"
+                                                class="hover:text-red-500 transition-colors">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6 mt-6">
+                            <h4 class="font-semibold text-gray-800 mb-5 text-base">إعدادات العمولة</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2.5">نوع العمولة</label>
+                                    <select wire:model.live="commission_type" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                        <option value="fixed">مبلغ ثابت</option>
+                                        <option value="percentage">نسبة مئوية</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2.5">
+                                        {{ $commission_type === 'fixed' ? 'قيمة العمولة (ريال)' : 'نسبة العمولة (%)' }}
+                                    </label>
+                                    <input type="number" wire:model="commission_rate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white">
+                                    @error('commission_rate') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6 mt-6">
+                            <label class="block text-sm font-semibold text-gray-700 mb-4">المسوقين <span class="text-gray-400 text-xs">(يمكن اختيار أكثر من مسوق)</span></label>
+                            <div class="flex flex-col gap-3 max-h-96 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
+                                @foreach($affiliates as $affiliate)
+                                <div wire:key="marketer-share-{{ $affiliate->id }}" class="p-3.5 bg-white rounded-xl border {{ in_array($affiliate->id, $affiliate_ids) ? 'border-blue-300 shadow-sm' : 'border-gray-100' }} transition-all duration-200">
+                                    <label class="flex items-center gap-3 cursor-pointer mb-3">
+                                        <input type="checkbox"
+                                            wire:model.live="affiliate_ids"
+                                            value="{{ $affiliate->id }}"
+                                            class="w-5 h-5 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500 border-gray-300">
+                                        <div class="flex-1">
+                                            <span class="text-sm font-bold text-gray-800 block">{{ $affiliate->name }}</span>
+                                            <span class="text-[10px] text-gray-500 uppercase font-black">{{ $affiliate->getRankLabel() }}</span>
+                                        </div>
+                                    </label>
+
+                                    @if(in_array($affiliate->id, $affiliate_ids))
+                                    <div class="flex flex-col gap-3 mt-2 pt-2 border-t border-gray-50" x-transition>
+                                        <div>
+                                            <label class="text-[9px] font-black text-gray-400 block mb-1">النسبة (%)</label>
+                                            <input type="number" step="0.01" wire:model.blur="affiliate_shares.{{ $affiliate->id }}" placeholder="النسبة" class="w-full px-3 py-2 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
+                                        </div>
+                                        <div>
+                                            <label class="text-[9px] font-black text-gray-400 block mb-1">مبلغ ثابت (ريال)</label>
+                                            <input type="number" wire:model.blur="affiliate_fixed.{{ $affiliate->id }}" placeholder="مبلغ محدد" class="w-full px-3 py-2 text-xs border border-gray-100 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50">
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                                @endforeach
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                إذا لم يتم اختيار أي مسوق، سيتم تعيين العميل لك تلقائياً.
+                            </p>
+                            @error('affiliate_ids') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200 bg-gray-50 -mx-8 px-8 -mb-8 pb-6 flex-shrink-0">
+                            <button @click="show = false"
+                                class="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 font-semibold transition-all duration-200 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                إلغاء
+                            </button>
+                            <button wire:click="saveLead"
+                                class="btn btn-primary">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ $leadId ? 'حفظ التغييرات' : 'حفظ العميل' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </template>
+
     <!-- Professional View Details Modal -->
     <template x-teleport="body">
         <div x-data="{ showViewModal: $wire.entangle('showViewModal') }"
@@ -750,7 +1077,7 @@ new #[Layout('layouts.admin')] class extends Component {
                                             <p class="font-black text-primary-900">{{ $viewLead->sector ?: '-' }}</p>
                                         </div>
                                         <div>
-                                            <p class="text-[10px] text-gray-400 font-bold">الحالة</p>
+                                            <p class="text-[12px] text-gray-400 font-bold">الحالة</p>
                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-black border {{ \App\Models\Lead::statusBadgeClass($viewLead->status) }}">
                                                 {{ \App\Models\Lead::statusLabel($viewLead->status) }}
                                             </span>

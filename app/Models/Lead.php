@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Lead extends Model
 {
+    use HasFactory;
+
     protected static function booted()
     {
         static::creating(function (self $lead) {
@@ -175,6 +178,27 @@ class Lead extends Model
         return self::normalizeStatus($this->status);
     }
 
+    public function getNextStatus(): ?string
+    {
+        $current = $this->lifecycle_status;
+        $order = [
+            self::STATUS_NEW,
+            self::STATUS_FIRST_CONTACT,
+            self::STATUS_CALL_IN_PROGRESS,
+            self::STATUS_APPOINTMENT,
+            self::STATUS_QUOTATION,
+            self::STATUS_NEGOTIATION,
+            self::STATUS_SOLD,
+        ];
+
+        $index = array_search($current, $order);
+        if ($index !== false && $index < count($order) - 1) {
+            return $order[$index + 1];
+        }
+
+        return null;
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'lead_user')->withTimestamps();
@@ -208,6 +232,11 @@ class Lead extends Model
     public function subscriptionRenewals()
     {
         return $this->hasMany(SubscriptionRenewal::class);
+    }
+
+    public function deletionRequests()
+    {
+        return $this->hasMany(LeadDeletionRequest::class);
     }
 
     public function pendingRenewal()
@@ -277,7 +306,8 @@ class Lead extends Model
             return false;
         }
 
-        return $this->subscription_renewal_date->diffInDays(now()) <= $days;
+        return $this->subscription_renewal_date->isFuture() &&
+            $this->subscription_renewal_date->diffInDays(now()) <= $days;
     }
 
     public function createSubscriptionRenewal($renewalDate = null)
@@ -325,5 +355,20 @@ class Lead extends Model
             'cancelled' => 'ملغي',
             default => $this->subscription_status,
         };
+    }
+
+    public function logActivity($description, $type = 'updated', $properties = [])
+    {
+        return ActivityLog::log($this, $type, $description, $properties);
+    }
+
+    public function requestDeletion($requestedBy, $reason = null)
+    {
+        return $this->deletionRequests()->create([
+            'requested_by' => $requestedBy,
+            'reason' => $reason,
+            'status' => 'pending',
+            'current_approval_level' => 'manager',
+        ]);
     }
 }

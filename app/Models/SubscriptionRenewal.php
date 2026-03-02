@@ -53,14 +53,14 @@ class SubscriptionRenewal extends Model
     public function scopeUpcoming($query, $days = 30)
     {
         return $query->where('renewal_date', '<=', now()->addDays($days))
-                    ->where('renewal_date', '>=', now())
-                    ->where('status', 'pending');
+            ->where('renewal_date', '>=', now())
+            ->where('status', 'pending');
     }
 
     public function scopeExpired($query)
     {
         return $query->where('renewal_date', '<', now())
-                    ->where('status', 'pending');
+            ->where('status', 'pending');
     }
 
     public function markAsCompleted($newExpiryDate, $amount = null, $notes = null)
@@ -115,7 +115,7 @@ class SubscriptionRenewal extends Model
 
     public function getDaysUntilRenewal()
     {
-        return now()->diffInDays($this->renewal_date, false);
+        return (int) now()->diffInDays($this->renewal_date, false);
     }
 
     public function getStatusLabel()

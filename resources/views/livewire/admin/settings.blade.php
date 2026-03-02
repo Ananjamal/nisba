@@ -17,6 +17,8 @@ new #[Layout('layouts.admin')] class extends Component {
     // Financial Settings
     public $commission_rate;
     public $min_withdrawal_amount;
+    public $max_withdrawal_amount;
+    public $tax_rate;
     public $currency_symbol;
 
     // Social Media
@@ -34,29 +36,34 @@ new #[Layout('layouts.admin')] class extends Component {
 
     public function mount()
     {
+        // Use App\Models\SystemSetting instead of Setting
+        $settingModel = \App\Models\SystemSetting::class;
+
         // General
-        $this->site_name = Setting::get('site_name', 'حليف');
-        $this->site_description = Setting::get('site_description', '');
-        $this->support_email = Setting::get('support_email', '');
-        $this->phone_number = Setting::get('phone_number', '');
-        $this->address = Setting::get('address', '');
+        $this->site_name = $settingModel::get('site_name', 'حليف');
+        $this->site_description = $settingModel::get('site_description', '');
+        $this->support_email = $settingModel::get('support_email', '');
+        $this->phone_number = $settingModel::get('phone_number', '');
+        $this->address = $settingModel::get('address', '');
 
         // Financial
-        $this->commission_rate = Setting::get('commission_rate', 10);
-        $this->min_withdrawal_amount = Setting::get('min_withdrawal_amount', 50);
-        $this->currency_symbol = Setting::get('currency_symbol', 'ر.س');
+        $this->commission_rate = $settingModel::get('commission_rate', 10);
+        $this->min_withdrawal_amount = $settingModel::get('min_withdrawal_amount', 100);
+        $this->max_withdrawal_amount = $settingModel::get('max_withdrawal_amount', 10000);
+        $this->tax_rate = $settingModel::get('tax_rate', 15);
+        $this->currency_symbol = $settingModel::get('currency_symbol', 'ر.س');
 
         // Social
-        $this->facebook_url = Setting::get('facebook_url', '');
-        $this->twitter_url = Setting::get('twitter_url', '');
-        $this->instagram_url = Setting::get('instagram_url', '');
-        $this->linkedin_url = Setting::get('linkedin_url', '');
-        $this->youtube_url = Setting::get('youtube_url', '');
+        $this->facebook_url = $settingModel::get('facebook_url', '');
+        $this->twitter_url = $settingModel::get('twitter_url', '');
+        $this->instagram_url = $settingModel::get('instagram_url', '');
+        $this->linkedin_url = $settingModel::get('linkedin_url', '');
+        $this->youtube_url = $settingModel::get('youtube_url', '');
 
         // System
-        $this->allow_registration = (bool) Setting::get('allow_registration', true);
-        $this->maintenance_mode = (bool) Setting::get('maintenance_mode', false);
-        $this->debug_mode = (bool) Setting::get('debug_mode', false);
+        $this->allow_registration = (bool) $settingModel::get('allow_registration', true);
+        $this->maintenance_mode = (bool) $settingModel::get('maintenance_mode', false);
+        $this->debug_mode = (bool) $settingModel::get('debug_mode', false);
     }
 
     public function save()
@@ -66,31 +73,37 @@ new #[Layout('layouts.admin')] class extends Component {
             'commission_rate' => 'required|numeric|min:0|max:100',
             'support_email' => 'nullable|email',
             'min_withdrawal_amount' => 'required|numeric|min:0',
+            'max_withdrawal_amount' => 'required|numeric|gt:min_withdrawal_amount',
+            'tax_rate' => 'required|numeric|min:0|max:100',
         ]);
 
+        $settingModel = \App\Models\SystemSetting::class;
+
         // General
-        Setting::set('site_name', $this->site_name);
-        Setting::set('site_description', $this->site_description);
-        Setting::set('support_email', $this->support_email);
-        Setting::set('phone_number', $this->phone_number);
-        Setting::set('address', $this->address);
+        $settingModel::set('site_name', $this->site_name);
+        $settingModel::set('site_description', $this->site_description);
+        $settingModel::set('support_email', $this->support_email);
+        $settingModel::set('phone_number', $this->phone_number);
+        $settingModel::set('address', $this->address);
 
         // Financial
-        Setting::set('commission_rate', $this->commission_rate);
-        Setting::set('min_withdrawal_amount', $this->min_withdrawal_amount);
-        Setting::set('currency_symbol', $this->currency_symbol);
+        $settingModel::set('commission_rate', $this->commission_rate, 'number', 'financial');
+        $settingModel::set('min_withdrawal_amount', $this->min_withdrawal_amount, 'number', 'financial');
+        $settingModel::set('max_withdrawal_amount', $this->max_withdrawal_amount, 'number', 'financial');
+        $settingModel::set('tax_rate', $this->tax_rate, 'number', 'financial');
+        $settingModel::set('currency_symbol', $this->currency_symbol, 'text', 'financial');
 
         // Social
-        Setting::set('facebook_url', $this->facebook_url);
-        Setting::set('twitter_url', $this->twitter_url);
-        Setting::set('instagram_url', $this->instagram_url);
-        Setting::set('linkedin_url', $this->linkedin_url);
-        Setting::set('youtube_url', $this->youtube_url);
+        $settingModel::set('facebook_url', $this->facebook_url);
+        $settingModel::set('twitter_url', $this->twitter_url);
+        $settingModel::set('instagram_url', $this->instagram_url);
+        $settingModel::set('linkedin_url', $this->linkedin_url);
+        $settingModel::set('youtube_url', $this->youtube_url);
 
         // System
-        Setting::set('allow_registration', $this->allow_registration);
-        Setting::set('maintenance_mode', $this->maintenance_mode);
-        Setting::set('debug_mode', $this->debug_mode);
+        $settingModel::set('allow_registration', $this->allow_registration, 'boolean');
+        $settingModel::set('maintenance_mode', $this->maintenance_mode, 'boolean');
+        $settingModel::set('debug_mode', $this->debug_mode, 'boolean');
 
         $this->dispatch('toast', type: 'success', message: 'تم حفظ كافة الإعدادات بنجاح');
     }
@@ -211,15 +224,43 @@ new #[Layout('layouts.admin')] class extends Component {
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            الحد الأدنى للسحب
+                        </label>
+                        <div class="relative">
+                            <input type="number" wire:model="min_withdrawal_amount" class="w-full rounded-2xl border-2 border-emerald-100 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-black text-xl transition-all pl-10 bg-emerald-50/10 focus:bg-white text-emerald-700 p-4">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600">
+                                <span class="font-black text-xs">{{ $currency_symbol }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            الحد الأقصى للسحب
+                        </label>
+                        <div class="relative">
+                            <input type="number" wire:model="max_withdrawal_amount" class="w-full rounded-2xl border-2 border-emerald-100 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-black text-xl transition-all pl-10 bg-emerald-50/10 focus:bg-white text-emerald-700 p-4">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600">
+                                <span class="font-black text-xs">{{ $currency_symbol }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-3">
                     <label class="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        الحد الأدنى للسحب
+                        نسبة الضريبة (%)
                     </label>
                     <div class="relative">
-                        <input type="number" wire:model="min_withdrawal_amount" class="w-full rounded-2xl border-2 border-emerald-100 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-black text-2xl transition-all pl-16 bg-emerald-50/10 focus:bg-white text-emerald-700 p-4">
-                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-emerald-600">
-                            <span class="font-black text-sm">{{ $currency_symbol }}</span>
+                        <input type="number" wire:model="tax_rate" class="w-full rounded-2xl border-2 border-emerald-100 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-black text-xl transition-all pl-10 bg-emerald-50/10 focus:bg-white text-emerald-700 p-4">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600">
+                            <span class="font-black text-lg text-lg text-lg">%</span>
                         </div>
                     </div>
                 </div>

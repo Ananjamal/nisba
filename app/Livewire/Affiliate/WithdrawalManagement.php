@@ -11,10 +11,15 @@ use Illuminate\Support\Facades\Auth;
 
 class WithdrawalManagement extends Component
 {
-    use WithPagination;
+    use WithPagination, \Livewire\WithFileUploads;
 
     public $amount;
     public $notes;
+    public $bank_name;
+    public $account_holder_name;
+    public $iban;
+    public $iban_proof;
+
     public $showRequestModal = false;
     public $showDelegationModal = false;
     public $selectedWithdrawal = null;
@@ -24,10 +29,18 @@ class WithdrawalManagement extends Component
     protected $paginationTheme = 'tailwind';
     protected $listeners = ['refreshComponent' => '$refresh'];
 
-    protected $rules = [
-        'amount' => 'required|numeric|min:100|max:10000',
-        'notes' => 'nullable|string|max:500',
-    ];
+    protected function rules()
+    {
+        $settings = $this->getSystemSettings();
+        return [
+            'amount' => 'required|numeric|min:' . $settings['min_amount'] . '|max:' . $settings['max_amount'],
+            'notes' => 'nullable|string|max:500',
+            'bank_name' => 'required|string|max:100',
+            'account_holder_name' => 'required|string|max:100',
+            'iban' => 'required|string|size:24',
+            'iban_proof' => 'required|image|max:2048', // 2MB Max
+        ];
+    }
 
     public function getWithdrawalRequests()
     {
@@ -55,6 +68,11 @@ class WithdrawalManagement extends Component
         ];
     }
 
+    public function getBalance()
+    {
+        return Auth::user()->stats?->pending_commissions ?? 0;
+    }
+
     public function calculateTaxAmount()
     {
         if (!$this->amount) {
@@ -67,40 +85,39 @@ class WithdrawalManagement extends Component
 
     public function calculateFinalAmount()
     {
-        if (!$this->amount) {
-            return 0;
-        }
-
-        return $this->amount - $this->calculateTaxAmount();
+        return (float)($this->amount ?: 0) - $this->calculateTaxAmount();
     }
 
     public function createWithdrawalRequest()
     {
         $this->validate();
 
+        $balance = $this->getBalance();
+        if ($this->amount > $balance) {
+            $this->addError('amount', 'المبلغ المطلوب يتجاوز الرصيد المتاح');
+            return;
+        }
+
         $settings = $this->getSystemSettings();
 
-        // Update validation rules based on settings
-        $this->validate([
-            'amount' => 'required|numeric|min:' . $settings['min_amount'] . '|max:' . $settings['max_amount'],
-        ]);
+        $proofPath = $this->iban_proof->store('iban-proofs', 'public');
 
         $withdrawal = WithdrawalRequest::create([
             'user_id' => Auth::id(),
             'amount' => $this->amount,
             'tax_rate' => $settings['tax_rate'],
             'tax_amount' => $this->calculateTaxAmount(),
-            'final_amount' => $this->calculateFinalAmount(),
+            'bank_name' => $this->bank_name,
+            'account_holder_name' => $this->account_holder_name,
+            'iban' => $this->iban,
+            'iban_proof_url' => $proofPath,
             'notes' => $this->notes,
             'status' => 'pending',
         ]);
 
-        // Auto-calculate tax is handled by model's boot method
-        $withdrawal->calculateTax();
-
-        $this->reset(['amount', 'notes', 'showRequestModal']);
+        $this->reset(['amount', 'notes', 'bank_name', 'account_holder_name', 'iban', 'iban_proof', 'showRequestModal']);
         $this->dispatch('refreshComponent');
-        $this->dispatch('show-message', 'تم إرسال طلب السحب بنجاح');
+        $this->dispatch('toast', type: 'success', message: 'تم إرسال طلب السحب بنجاح');
     }
 
     public function requestDelegation($withdrawalId)

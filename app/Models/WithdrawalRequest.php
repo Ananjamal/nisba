@@ -11,7 +11,6 @@ class WithdrawalRequest extends Model
         'lead_id',
         'amount',
         'tax_amount',
-        'final_amount',
         'tax_rate',
         'iban',
         'bank_name',
@@ -63,15 +62,11 @@ class WithdrawalRequest extends Model
     {
         $taxRate = SystemSetting::get('tax_rate', 15);
         $taxAmount = ($this->amount * $taxRate) / 100;
-        $finalAmount = $this->amount - $taxAmount;
 
-        $this->update([
-            'tax_rate' => $taxRate,
-            'tax_amount' => $taxAmount,
-            'final_amount' => $finalAmount,
-        ]);
+        $this->tax_rate = $taxRate;
+        $this->tax_amount = $taxAmount;
 
-        return $finalAmount;
+        return $taxAmount;
     }
 
     public function delegate($toUserId)

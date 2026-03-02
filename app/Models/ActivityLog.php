@@ -87,6 +87,7 @@ class ActivityLog extends Model
             'referral_link_generated' => 'توليد رابط الإحالة',
             'duplicate_detected' => 'اكتشاف تكرار',
             'subscription_renewed' => 'تجديد الاشتراك',
+            'withdrawal_delegated' => 'تفويض سحب',
             default => $this->type,
         };
     }
@@ -149,6 +150,8 @@ class ActivityLog extends Model
             'expected_deal_value' => 'القيمة المتوقعة للصفقة',
             'city' => 'المدينة',
             'area' => 'المنطقة',
+            'delegated_to' => 'مفوض إلى',
+            'notes' => 'الملاحظات',
             default => $field,
         };
     }
